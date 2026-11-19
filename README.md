@@ -604,9 +604,18 @@ problems privately, as [SECURITY.md](SECURITY.md) says. Everyone taking part fol
 - **Code**: MIT ([LICENSE](LICENSE)).
 - **Built-in skins** (textures, `nui_skin.tml`): CC0 1.0 (`assets/skin/*/LICENSE`).
 - **Fonts** (unmodified, SIL Open Font Licence 1.1, not covered by CC0):
-  - Brawler Regular, Copyright 2011 The Brawler Project Authors;
-  - Philosopher Bold, Copyright 2011 The Philosopher Project Authors;
-  - JetBrains Mono Regular 2.304, Copyright 2020 The JetBrains Mono Project Authors.
+  - Brawler Regular (Ink and brass), Copyright 2011 The Brawler Project Authors;
+  - Philosopher Bold (Bronze), Copyright 2011 The Philosopher Project Authors;
+  - Old Standard TT Bold and Rye (Brass and soot), Copyright 2011 The Old Standard Project Authors; Copyright (c)
+    2011 by Sorkin Type Co;
+  - Spectral SemiBold and Federant (Verdigris and paper), Copyright 2017 The Spectral Project Authors; Copyright (c)
+    2011, Cyreal;
+  - Zilla Slab SemiBold and Cinzel Decorative Bold (Oxblood and rivets), Copyright 2017, The Mozilla Foundation;
+    Copyright (c) 2012 Natanael Gama;
+  - JetBrains Mono Regular 2.304 (all five), Copyright 2020 The JetBrains Mono Project Authors.
+
+  Each font's licence text ships next to it; [PROVENANCE.md](PROVENANCE.md#fonts-shipped) has the sources and
+  Reserved Font Names.
 - **nui-preview**: the layout, rendering and checks are a port of nui-preview, a Python NUI renderer by the same
   author in Layonara's module repository (not public), used with permission.
 - **niv's `nuilayout.cpp`** ([gist](https://gist.github.com/niv/9bf60ca649fdf6709c17886a1a467755)), linked from the
