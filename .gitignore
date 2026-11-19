@@ -1,0 +1,10 @@
+node_modules/
+dist/
+local/
+.golden-out/
+.out/
+*.tsbuildinfo
+.scratch/
+tools/open-skin/out/
+__pycache__/
+/nui-designer.ini

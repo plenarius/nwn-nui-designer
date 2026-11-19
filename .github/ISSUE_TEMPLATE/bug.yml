@@ -1,0 +1,61 @@
+name: Bug
+description: The editor, the checker or a command does something wrong (not a drawing difference from the game).
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a window looks different from the game, use **Draws differently from the game** instead.
+        Never attach game files (textures, fonts, `nui_skin.tml`) from the game or from a server's haks.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: How to make it happen again. Attach the window, project or skin if it needs one.
+      placeholder: |
+        1. pnpm dev
+        2. Open ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: designer-version
+    attributes:
+      label: Designer version or commit
+      description: The commit you run (`git rev-parse --short HEAD`), or the release.
+      placeholder: "37843f6"
+    validations:
+      required: true
+  - type: input
+    id: os-browser
+    attributes:
+      label: OS and browser
+      description: For a command-line bug, the OS and `node --version`.
+      placeholder: "Windows 11, Firefox 140"
+    validations:
+      required: true
+  - type: dropdown
+    id: game-install
+    attributes:
+      label: How the game is installed
+      options:
+        - Steam
+        - GOG
+        - Beamdog
+        - Other (say below)
+        - No game (built-in skins only)
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Errors from the browser's console, the `pnpm dev` terminal or the command, if any.
+      render: text

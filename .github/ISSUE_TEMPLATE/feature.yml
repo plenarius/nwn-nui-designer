@@ -1,0 +1,16 @@
+name: Feature request
+description: Something the designer should do that it does not do yet.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you would like
+      description: What it should do, and what you would use it for.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: How you do it now, or how the game client behaves, if it matters.

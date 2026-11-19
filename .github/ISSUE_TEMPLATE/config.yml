@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/plenarius/nwn-nui-designer/security/advisories/new
+    about: Report it privately through GitHub's private vulnerability reporting, not as a public issue. See SECURITY.md.

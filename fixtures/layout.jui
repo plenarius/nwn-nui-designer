@@ -1,0 +1,285 @@
+{
+ "version": 1,
+ "title": "Layout",
+ "root": {
+  "type": "col",
+  "label": null,
+  "value": null,
+  "children": [
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null
+     },
+     {
+      "type": "button",
+      "label": "Centred",
+      "value": null,
+      "width": 120,
+      "height": 30
+     },
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null
+     }
+    ],
+    "height": 34
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null
+     },
+     {
+      "type": "button",
+      "label": "Two",
+      "value": null,
+      "width": 80,
+      "height": 30
+     },
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null
+     },
+     {
+      "type": "button",
+      "label": "spacers",
+      "value": null,
+      "width": 100,
+      "height": 30
+     },
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null
+     }
+    ],
+    "height": 34
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "button",
+      "label": "Unsized: 150 wide",
+      "value": null,
+      "height": 30
+     },
+     {
+      "type": "button_select",
+      "label": "Also 150",
+      "value": true,
+      "height": 30
+     }
+    ],
+    "height": 34
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "button",
+      "label": "Margin 0",
+      "value": null,
+      "margin": 0,
+      "width": 100,
+      "height": 30
+     },
+     {
+      "type": "button",
+      "label": "Margin 8",
+      "value": null,
+      "margin": 8,
+      "width": 100,
+      "height": 30
+     },
+     {
+      "type": "button",
+      "label": "Aspect 2",
+      "value": null,
+      "aspect": 2,
+      "height": 30
+     }
+    ],
+    "height": 50
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "button",
+      "label": "Padded row",
+      "value": null,
+      "width": 120,
+      "height": 30
+     }
+    ],
+    "padding": 6,
+    "height": 46
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "col",
+      "label": null,
+      "value": null,
+      "children": [
+       {
+        "type": "label",
+        "label": null,
+        "value": "Column A",
+        "text_halign": 1,
+        "text_valign": 0,
+        "height": 24
+       },
+       {
+        "type": "button",
+        "label": "a1",
+        "value": null,
+        "height": 28
+       },
+       {
+        "type": "button",
+        "label": "a2",
+        "value": null,
+        "height": 28
+       }
+      ],
+      "width": 160
+     },
+     {
+      "type": "col",
+      "label": null,
+      "value": null,
+      "children": [
+       {
+        "type": "label",
+        "label": null,
+        "value": "Column B",
+        "text_halign": 1,
+        "text_valign": 0,
+        "height": 24
+       },
+       {
+        "type": "spacer",
+        "label": null,
+        "value": null
+       },
+       {
+        "type": "button",
+        "label": "bottom",
+        "value": null,
+        "height": 28
+       }
+      ],
+      "width": 160
+     },
+     {
+      "type": "col",
+      "label": null,
+      "value": null,
+      "children": [
+       {
+        "type": "label",
+        "label": null,
+        "value": "Column C takes the rest",
+        "text_halign": 1,
+        "text_valign": 0,
+        "height": 24
+       },
+       {
+        "type": "row",
+        "label": null,
+        "value": null,
+        "children": [
+         {
+          "type": "spacer",
+          "label": null,
+          "value": null
+         },
+         {
+          "type": "button",
+          "label": "right",
+          "value": null,
+          "width": 90,
+          "height": 28
+         }
+        ],
+        "height": 32
+       }
+      ]
+     }
+    ],
+    "height": 120
+   },
+   {
+    "type": "spacer",
+    "label": null,
+    "value": null
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null
+     },
+     {
+      "type": "button",
+      "label": "OK",
+      "value": null,
+      "width": 100,
+      "height": 32
+     },
+     {
+      "type": "button",
+      "label": "Cancel",
+      "value": null,
+      "width": 100,
+      "height": 32
+     }
+    ],
+    "height": 36
+   }
+  ]
+ },
+ "geometry": {
+  "x": -1,
+  "y": -1,
+  "w": 640,
+  "h": 480
+ },
+ "resizable": false,
+ "collapsed": null,
+ "closable": true,
+ "transparent": false,
+ "border": true,
+ "accepts_input": true,
+ "size_constraint": null,
+ "edge_constraint": null,
+ "font": ""
+}

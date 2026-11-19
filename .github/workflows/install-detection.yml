@@ -1,0 +1,61 @@
+name: Install detection
+
+# Install detection, the local settings and the local API's folder confinement on real Windows and macOS (and the hak
+# order reader, whose file paths go through the same code): fake installs at each store's real default locations
+# (tests/detect.real.test.ts). The repository is private while these run: macOS minutes cost 10x and Windows 2x, so
+# the job runs only when that code or its tests change, and by hand (Actions, "Run workflow"). Linux runs the same
+# tests in ci.yml.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/node/detect.ts
+      - src/node/settings.ts
+      - src/node/localapi.ts
+      - src/node/hakorder.ts
+      - src/node/filesource.ts
+      - tests/local.test.ts
+      - tests/detect.real.test.ts
+      - tests/hakorder.test.ts
+      - tests/fakegame.ts
+      - tests/gffbuild.ts
+      - .github/workflows/install-detection.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: detect-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Install detection (${{ matrix.os }})
+    # GitHub-hosted only: the repository is meant to be public, so never a self-hosted runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Only these tests: no browser, no build. NUID_REAL_INSTALLS lets detect.real.test.ts write fake installs to
+      # Program Files, /Applications, the user's Documents and the registry of this throwaway runner.
+      - name: Detection, settings and confinement tests
+        env:
+          NUID_REAL_INSTALLS: "1"
+        run: pnpm exec vitest run tests/local.test.ts tests/detect.real.test.ts tests/hakorder.test.ts

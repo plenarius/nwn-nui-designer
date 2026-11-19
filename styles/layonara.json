@@ -1,0 +1,59 @@
+{
+  "$schema": "./style.schema.json",
+  "$comment": "Layonara's NUI house style (nwn-module docs/NUI-STYLE.md, checked against origin/ee on 2026-11-17), written as generic rules: the numbers (the 36 px row, the 8 and 16 px gaps, the 1000 x 720 limit, the palette) are the guide's. Each rule was decided from an audit of Layonara's windows (DESIGN.md, 'Problems and house style'). Guide-only, not checked: a heading is 28 tall, a drawn text line 18-20 for a name line and 16 for a secondary line (the JSON cannot tell a heading or a line's role).",
+  "id": "layonara",
+  "title": "Layonara (example)",
+  "description": "Layonara's NUI house style, included as an example of a style file to copy and adapt: fixed-size windows sized to their content, one spacing grid, no help paragraphs, short one-line tooltips, every disabled control explains itself.",
+  "source": "nwn-module docs/NUI-STYLE.md",
+  "knownWindowKeys": ["event_data", "formfile", "id", "local_version", "profiles", "subforms", "user_data"],
+  "rules": {
+    "fixed-size": {
+      "summary": "Windows are not resizable (sizes are static, nothing reflows). Layonara exempts the customisation window.",
+      "exempt": ["cust"]
+    },
+    "max-content": {
+      "width": 1000,
+      "height": 720,
+      "summary": "Content of at most 1000 x 720, so the window fits 1920 x 1080 at UI scale 1.0 with the quickbar and chat."
+    },
+    "frame": {},
+    "gaps": {
+      "allowed": [8, 16],
+      "fillerOver": 32,
+      "summary": "Empty room between things is 8 or 16 (as a footprint); the 4 between controls comes from their margins. Fillers (over 32) are not gaps."
+    },
+    "row-grid": { "height": 36 },
+    "disabled-tip": {},
+    "tooltip-length": {
+      "max": 60,
+      "summary": "A tooltip or disabled tooltip is one short line, at most 60 characters (the client never wraps it and draws \"\\n\" as \"?\"); longer help goes in the window as wrapped text. Bound ones are checked by their sample values. Layonara exempts the gods window (its deity titles are game data).",
+      "exempt": ["gods"]
+    },
+    "no-help-text": { "maxChars": 200 },
+    "list-rows": {
+      "minHeight": 32,
+      "summary": "List rows that hold text are at least 32 tall (a 24 row cuts the 17 px font)."
+    },
+    "close-last": {},
+    "close-width": {
+      "width": 120,
+      "summary": "The Close button is 120 wide (footprint: width 116 with the default margin), in every window."
+    },
+    "drawn-progress": {
+      "hint": "draw the bar instead: a track rect (55, 50, 44) and a gold fill whose rect is bound, with the figures above it"
+    },
+    "palette": {
+      "$comment": "The guide's named colours (gold, name, body, muted, ..., black, white), then the achievements' level colours (Achv_LevelColor in achv_i_show.nss).",
+      "colours": [
+        [222, 184, 80], [235, 225, 200], [200, 192, 176], [165, 160, 150], [140, 135, 128],
+        [150, 210, 150], [240, 160, 120], [235, 100, 90], [70, 64, 56], [110, 100, 86],
+        [55, 50, 44], [214, 198, 160], [128, 120, 106], [0, 0, 0], [255, 255, 255],
+        [255, 150, 60], [190, 120, 240], [225, 225, 225]
+      ],
+      "artItems": 16,
+      "summary": "Colours come from the named palette (gold headings, name, body, muted, good, short, blocked, separator, frame, track) or the achievement levels'. Drawn game art (image items, a board) is not checked."
+    },
+    "label-budget": { "pxPerChar": 8, "labelPad": 8, "buttonPad": 24 },
+    "no-refresh": {}
+  }
+}

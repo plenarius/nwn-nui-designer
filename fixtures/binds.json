@@ -1,0 +1,281 @@
+{
+ "name": "binds",
+ "form": "binds",
+ "window": {
+  "version": 1,
+  "title": {
+   "bind": "title",
+   "number_flags": 0,
+   "number_precision": 0,
+   "text_flags": 0
+  },
+  "root": {
+   "type": "col",
+   "label": null,
+   "value": null,
+   "children": [
+    {
+     "type": "row",
+     "label": null,
+     "value": null,
+     "children": [
+      {
+       "type": "label",
+       "label": null,
+       "value": {
+        "bind": "title_text",
+        "number_flags": 0,
+        "number_precision": 0,
+        "text_flags": 0
+       },
+       "text_halign": 1,
+       "text_valign": 0,
+       "width": 300,
+       "height": 30
+      },
+      {
+       "type": "progress",
+       "label": null,
+       "value": {
+        "bind": "progress",
+        "number_flags": 0,
+        "number_precision": 0,
+        "text_flags": 0
+       },
+       "width": 200,
+       "height": 24
+      }
+     ],
+     "height": 34
+    },
+    {
+     "type": "row",
+     "label": null,
+     "value": null,
+     "children": [
+      {
+       "type": "list",
+       "label": null,
+       "value": null,
+       "row_template": [
+        [
+         {
+          "type": "image",
+          "label": null,
+          "value": {
+           "bind": "icons",
+           "number_flags": 0,
+           "number_precision": 0,
+           "text_flags": 0
+          },
+          "image_aspect": 0,
+          "image_halign": 0,
+          "image_valign": 0
+         },
+         26,
+         false
+        ],
+        [
+         {
+          "type": "label",
+          "label": null,
+          "value": {
+           "bind": "names",
+           "number_flags": 0,
+           "number_precision": 0,
+           "text_flags": 0
+          },
+          "text_halign": 1,
+          "text_valign": 0,
+          "foreground_color": {
+           "bind": "colours",
+           "number_flags": 0,
+           "number_precision": 0,
+           "text_flags": 0
+          }
+         },
+         0,
+         true
+        ],
+        [
+         {
+          "type": "check",
+          "label": "",
+          "value": {
+           "bind": "ticks",
+           "number_flags": 0,
+           "number_precision": 0,
+           "text_flags": 0
+          }
+         },
+         30,
+         false
+        ]
+       ],
+       "row_count": {
+        "bind": "rows",
+        "number_flags": 0,
+        "number_precision": 0,
+        "text_flags": 0
+       },
+       "row_height": 28,
+       "border": true,
+       "scrollbars": 2,
+       "width": 320,
+       "height": 200
+      },
+      {
+       "type": "group",
+       "label": null,
+       "value": null,
+       "children": [
+        {
+         "type": "label",
+         "label": null,
+         "value": "not swapped in",
+         "text_halign": 1,
+         "text_valign": 0
+        }
+       ],
+       "border": true,
+       "scrollbars": 4,
+       "id": "pane",
+       "width": 240,
+       "height": 200
+      }
+     ],
+     "height": 204
+    },
+    {
+     "type": "row",
+     "label": null,
+     "value": null,
+     "children": [
+      {
+       "type": "spacer",
+       "label": null,
+       "value": null
+      },
+      {
+       "type": "button",
+       "label": {
+        "bind": "ok_label",
+        "number_flags": 0,
+        "number_precision": 0,
+        "text_flags": 0
+       },
+       "value": null,
+       "enabled": {
+        "bind": "ok_on",
+        "number_flags": 0,
+        "number_precision": 0,
+        "text_flags": 0
+       },
+       "width": 120,
+       "height": 32
+      }
+     ],
+     "height": 36
+    }
+   ]
+  },
+  "geometry": {
+   "bind": "geometry",
+   "number_flags": 0,
+   "number_precision": 0,
+   "text_flags": 0
+  },
+  "resizable": false,
+  "collapsed": null,
+  "closable": true,
+  "transparent": false,
+  "border": true,
+  "accepts_input": true,
+  "size_constraint": null,
+  "edge_constraint": null,
+  "font": ""
+ },
+ "binds": {
+  "title": "Bound title",
+  "geometry": {
+   "x": -1,
+   "y": -1,
+   "w": 620,
+   "h": 360
+  },
+  "title_text": "Values from binds",
+  "progress": 0.35,
+  "rows": 4,
+  "icons": [
+   "is_fireball",
+   "ir_attack",
+   "ir_cntrspell",
+   "no_icon_here"
+  ],
+  "names": [
+   "Fireball",
+   "Attack",
+   "Counterspell",
+   "A missing icon"
+  ],
+  "colours": [
+   {
+    "r": 255,
+    "g": 200,
+    "b": 120,
+    "a": 255
+   },
+   {
+    "r": 255,
+    "g": 255,
+    "b": 255,
+    "a": 255
+   },
+   {
+    "r": 160,
+    "g": 200,
+    "b": 255,
+    "a": 255
+   },
+   {
+    "r": 255,
+    "g": 120,
+    "b": 120,
+    "a": 255
+   }
+  ],
+  "ticks": [
+   true,
+   false,
+   true,
+   false
+  ],
+  "ok_label": "Disabled OK",
+  "ok_on": false
+ },
+ "panes": {
+  "pane": {
+   "type": "col",
+   "label": null,
+   "value": null,
+   "children": [
+    {
+     "type": "label",
+     "label": null,
+     "value": "The swapped-in pane",
+     "text_halign": 1,
+     "text_valign": 0,
+     "height": 28
+    },
+    {
+     "type": "text",
+     "label": null,
+     "value": "Panes swapped with NuiSetGroupLayout are drawn in place of the group's own child.",
+     "border": false,
+     "scrollbars": 0,
+     "height": 90
+    }
+   ]
+  }
+ }
+}

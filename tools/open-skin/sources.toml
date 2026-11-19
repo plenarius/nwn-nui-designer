@@ -1,0 +1,124 @@
+# The third-party inputs of the open skin: nine unmodified fonts, pinned, with checksums and licences. fetch.py
+# downloads them into a cache (not into git) and checks the checksums; `pnpm skin ship` checks the copies in assets/skin/ against them.
+# Nothing from Beamdog is listed here or used by any script in this folder (the game's files are read only by
+# font_metrics.py and the render scripts, locally, for comparison).
+#
+# The skin's own art and nui_skin.tml are procedural (src/core/skin/gen) and CC0. The research also measured
+# Philosopher Regular, Marcellus, MedievalSharp, Tenor Sans and others, and tried Lamoot's CC-BY 3.0 kit
+# (docs/OPEN-SKIN.md); none of them is used, so none is listed.
+
+# The text font of theme B "Ink and brass", the default built-in skin.
+[fonts.brawler]
+family = "Brawler"
+style = "Regular"
+url = "https://raw.githubusercontent.com/google/fonts/7af0d90b4d532ffa4b041937b560c6df4e7b1e95/ofl/brawler/Brawler-Regular.ttf"
+sha256 = "5f7fcee66ef84c8b27f92b7cdb973039a6194ab3efcce4b328e4755ccb676831"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/7af0d90b4d532ffa4b041937b560c6df4e7b1e95/ofl/brawler/OFL.txt"
+copyright = "Copyright 2011 The Brawler Project Authors (https://github.com/cyrealtype/Brawler)"
+reserved_font_name = ""
+resref = "nuio_brawler"
+
+# The text font of theme A "Bronze".
+[fonts.philosopher-bold]
+family = "Philosopher"
+style = "Bold"
+url = "https://raw.githubusercontent.com/google/fonts/7af0d90b4d532ffa4b041937b560c6df4e7b1e95/ofl/philosopher/Philosopher-Bold.ttf"
+sha256 = "2277c78b95657274b949f40b64b58d18fe7bbe0ec968c104d38906ec700024ea"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/7af0d90b4d532ffa4b041937b560c6df4e7b1e95/ofl/philosopher/OFL.txt"
+copyright = "Copyright 2011 The Philosopher Project Authors (https://github.com/alexeiva/philosopher)"
+reserved_font_name = ""
+resref = "nuio_philo_b"
+
+# The monospace font: the same file the game ships as jbmonoreg.ttf (byte for byte, checked 2026-11-16), taken from
+# upstream instead.
+[fonts.jetbrainsmono]
+family = "JetBrains Mono"
+style = "Regular"
+url = "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-Regular.ttf"
+sha256 = "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/OFL.txt"
+copyright = "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+reserved_font_name = ""
+resref = "nuio_jbmono"
+
+# The steampunk skins (built-in since 2026-11-18: Brass and soot, Verdigris and paper, Oxblood and rivets): a text
+# face and a display face ("display", for headings through NuiStyleFont) for each of the presets s-brass,
+# s-verdigris and s-oxblood (src/core/skin/gen/style.ts). Pinned to google/fonts commit 5bd87dfc. Unmodified, so a
+# Reserved Font Name does not stop them shipping under their resref. Resrefs are at most 12 characters, so the hak's
+# licence text ofl_<resref> fits in 16.
+
+# s-brass text: a Victorian newspaper face, bold enough for 15 px.
+[fonts.oldstandard-bold]
+family = "Old Standard TT"
+style = "Bold"
+url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/oldstandardtt/OldStandard-Bold.ttf"
+sha256 = "7d831e9d799ad23ee98e889381a9db2a283b2dac7f228dd5c06071decb9c54db"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/oldstandardtt/OFL.txt"
+copyright = "Copyright 2011 The Old Standard Project Authors (amkryukov@gmail.com)"
+reserved_font_name = ""
+resref = "nuio_oldstdb"
+
+# s-brass display: a wood-type western face.
+[fonts.rye]
+family = "Rye"
+style = "Regular"
+url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/rye/Rye-Regular.ttf"
+sha256 = "b7edee5e615ae1b6b07e9d030c1309152bf3672a0e8a2a46293e273730f5adba"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/rye/OFL.txt"
+copyright = "Copyright (c) 2011 by Sorkin Type Co (www.sorkintype.com)"
+reserved_font_name = "Rye"
+resref = "nuio_rye"
+
+# s-verdigris text: a book serif, at font_size 19 (22 matched Brawler's widths at 17, but its taller line clipped
+# three-line text laid out for 17).
+[fonts.spectral-semibold]
+family = "Spectral"
+style = "SemiBold"
+url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/spectral/Spectral-SemiBold.ttf"
+sha256 = "5f86915a744832ecf6e4a17ab04bea091b9fa992ef5164ff65ae34c1da2fe94b"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/spectral/OFL.txt"
+copyright = "Copyright 2017 The Spectral Project Authors (https://github.com/productiontype/Spectral)"
+reserved_font_name = ""
+resref = "nuio_spectsb"
+
+# s-verdigris display: an art nouveau Victorian face.
+[fonts.federant]
+family = "Federant"
+style = "Regular"
+url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/federant/Federant-Regular.ttf"
+sha256 = "d40cb09c85114c2b0c9442636412e997d8258b383e1d1a684e7e32b21d07a5c2"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/federant/OFL.txt"
+copyright = "Copyright (c) 2011, Cyreal (www.cyreal.org)"
+reserved_font_name = "Federant"
+resref = "nuio_federnt"
+
+# s-oxblood text: an industrial slab serif.
+[fonts.zillaslab-semibold]
+family = "Zilla Slab"
+style = "SemiBold"
+url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/zillaslab/ZillaSlab-SemiBold.ttf"
+sha256 = "aafcb295b88d520357db1ecf9a1c3167055e87e9ddf5f63e560cbd139ec2805e"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/zillaslab/OFL.txt"
+copyright = "Copyright 2017, The Mozilla Foundation"
+reserved_font_name = ""
+resref = "nuio_zillasb"
+
+# s-oxblood display: engraved capitals with swash.
+[fonts.cinzeldecorative-bold]
+family = "Cinzel Decorative"
+style = "Bold"
+url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/cinzeldecorative/CinzelDecorative-Bold.ttf"
+sha256 = "e854e68a388aa50d742a4415c1ae5c17a617ef7956c95a70021d0a4a44f20518"
+licence = "OFL-1.1"
+licence_url = "https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a/ofl/cinzeldecorative/OFL.txt"
+copyright = "Copyright (c) 2012 Natanael Gama (info@ndiscovered.com)"
+reserved_font_name = "Cinzel"
+resref = "nuio_cinzldb"

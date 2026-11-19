@@ -1,0 +1,1077 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/plenarius/nwn-nui-designer/styles/style.schema.json",
+  "title": "NUI designer style file",
+  "description": "A house style for NUI windows: which generic rules to run, with their numbers (README, \"Your own house style\").",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "$comment": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "description": "The style's id: what `pnpm check --style ID` takes and the editor remembers."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The name in the editor's Style select."
+    },
+    "description": {
+      "type": "string",
+      "description": "One or two sentences on the style, shown above its rules."
+    },
+    "source": {
+      "type": "string",
+      "description": "Where the house style is written down."
+    },
+    "knownWindowKeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Window keys your framework adds that the client ignores: the client check stops calling them unknown."
+    },
+    "plugin": {
+      "type": "string",
+      "pattern": "\\.m?js$",
+      "description": "A .js or .mjs file beside this one (or below it) whose default export adds rules of your own. It is code: it runs with your rights, as any plugin."
+    },
+    "rules": {
+      "type": "object",
+      "description": "The rules to run, by id: true, false, or an object of settings and parameters. A rule not listed is off. With a plugin, its rules' ids take the common settings too.",
+      "properties": {
+        "fixed-size": {
+          "description": "Windows are not resizable. Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                }
+              }
+            }
+          ]
+        },
+        "max-content": {
+          "description": "The window's content (its geometry less the frame) is at most width x height. Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "width": {
+                  "type": "number",
+                  "description": "Largest content width.",
+                  "default": 1000
+                },
+                "height": {
+                  "type": "number",
+                  "description": "Largest content height.",
+                  "default": 720
+                }
+              }
+            }
+          ]
+        },
+        "frame": {
+          "description": "The geometry is the root's footprint plus the client's frame (16 wide, 49 tall or 16 with no title bar): no empty band. Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                }
+              }
+            }
+          ]
+        },
+        "gaps": {
+          "description": "A plain spacer in a row or column (a gap) has one of the allowed footprints; wider spacers are fillers, not gaps. Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "allowed": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 1,
+                  "description": "The allowed gaps (footprints: size plus margins).",
+                  "default": [
+                    8,
+                    16
+                  ]
+                },
+                "fillerOver": {
+                  "type": "number",
+                  "description": "A spacer wider than this is a filler (it pushes what follows), not a gap.",
+                  "default": 32
+                }
+              }
+            }
+          ]
+        },
+        "row-grid": {
+          "description": "A row of controls (buttons, fields, combos, checks, with their labels and plain spacers) has this height (a footprint). Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "height": {
+                  "type": "number",
+                  "description": "The control row's height (footprint).",
+                  "default": 36
+                }
+              }
+            }
+          ]
+        },
+        "control-height": {
+          "description": "A control (button, field, combo, check, ...) with a set height has one of the standard heights (footprints). Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "allowed": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 1,
+                  "description": "The standard control heights (footprints: size plus margins).",
+                  "default": [
+                    36
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "margins": {
+          "description": "An element's explicit margin is one of the allowed values (an element without one keeps the client's default). Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "allowed": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 1,
+                  "description": "The allowed explicit margins.",
+                  "default": [
+                    0,
+                    2,
+                    4
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "disabled-tip": {
+          "description": "Every control that can be disabled has a disabled tooltip. Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                }
+              }
+            }
+          ]
+        },
+        "tooltip-length": {
+          "description": "A tooltip or disabled tooltip is one line of at most max characters (bound ones by their sample values). Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "max": {
+                  "type": "number",
+                  "description": "The longest tooltip, in characters.",
+                  "default": 60
+                }
+              }
+            }
+          ]
+        },
+        "no-help-text": {
+          "description": "No static text element longer than maxChars (help paragraphs belong in tooltips or a help page). Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "maxChars": {
+                  "type": "number",
+                  "description": "The longest static text element, in characters.",
+                  "default": 200
+                }
+              }
+            }
+          ]
+        },
+        "list-rows": {
+          "description": "List rows that hold text are at least minHeight tall. Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "minHeight": {
+                  "type": "number",
+                  "description": "The smallest row_height for rows with text.",
+                  "default": 32
+                }
+              }
+            }
+          ]
+        },
+        "close-last": {
+          "description": "The Close button is the window's last control (bottom right). Default severity: warning.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                }
+              }
+            }
+          ]
+        },
+        "close-width": {
+          "description": "The Close button has this width (a footprint). Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "width": {
+                  "type": "number",
+                  "description": "The Close button's width (footprint: size plus margins).",
+                  "default": 120
+                }
+              }
+            }
+          ]
+        },
+        "drawn-progress": {
+          "description": "No NuiProgress: progress bars are drawn (a track rect and a bound fill rect). Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "hint": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The note shown on each NuiProgress.",
+                  "default": "draw the bar instead: a track rect and a fill rect whose rect is bound"
+                }
+              }
+            }
+          ]
+        },
+        "palette": {
+          "description": "Foreground and drawn colours come from the palette (rgb; alpha is free). Image items and drawn art (artItems or more shapes and no text) are not checked. Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "colours": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 255
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "description": "The allowed colours, as [r, g, b].",
+                  "default": [
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      255,
+                      255,
+                      255
+                    ]
+                  ]
+                },
+                "artItems": {
+                  "type": "number",
+                  "description": "A draw list of at least this many shapes and no text is drawn art, not checked.",
+                  "default": 16
+                }
+              }
+            }
+          ]
+        },
+        "fonts": {
+          "description": "An element's static font is one of the allowed fonts. Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "allowed": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The allowed font names (the skin's [[fonts]] names).",
+                  "default": []
+                }
+              }
+            }
+          ]
+        },
+        "label-budget": {
+          "description": "A bound label or button is wide enough for its longest sample value at pxPerChar a character plus padding. Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                },
+                "pxPerChar": {
+                  "type": "number",
+                  "description": "Width budget per character.",
+                  "default": 8
+                },
+                "labelPad": {
+                  "type": "number",
+                  "description": "Extra width for a label.",
+                  "default": 8
+                },
+                "buttonPad": {
+                  "type": "number",
+                  "description": "Extra width for a button.",
+                  "default": 24
+                }
+              }
+            }
+          ]
+        },
+        "no-refresh": {
+          "description": "No Refresh button: windows refresh themselves. Default severity: info.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "$comment": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "false turns the rule off (a rule not listed is off too).",
+                  "default": true
+                },
+                "severity": {
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info"
+                  ],
+                  "description": "The severity of every note the rule makes (default: the rule's own)."
+                },
+                "exempt": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The rule's name in the problem list (default: made from its parameters)."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One line saying what the rule wants, for the editor's rule list."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "$comment": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "false turns the rule off (a rule not listed is off too).",
+            "default": true
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ],
+            "description": "The severity of every note the rule makes (default: the rule's own)."
+          },
+          "exempt": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Windows the rule skips, by name: the form or document name, or a framework window's id."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The rule's name in the problem list (default: made from its parameters)."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One line saying what the rule wants, for the editor's rule list."
+          }
+        },
+        "description": "A plugin's rule: its common settings."
+      }
+    }
+  }
+}

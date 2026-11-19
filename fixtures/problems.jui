@@ -1,0 +1,183 @@
+{
+ "version": 1,
+ "title": "Problems",
+ "root": {
+  "type": "col",
+  "label": null,
+  "value": null,
+  "children": [
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "button",
+      "label": "A label much too long for its button",
+      "value": null,
+      "width": 120,
+      "height": 32
+     },
+     {
+      "type": "label",
+      "label": null,
+      "value": "Café × 3 — not ASCII",
+      "text_halign": 1,
+      "text_valign": 0,
+      "width": 260,
+      "height": 32
+     },
+     {
+      "type": "image",
+      "label": null,
+      "value": "no_such_image",
+      "image_aspect": 0,
+      "image_halign": 0,
+      "image_valign": 0,
+      "width": 32,
+      "height": 32
+     }
+    ],
+    "height": 36
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "text",
+      "label": null,
+      "value": "This text has far more words than its small box can show, so the last lines are cut off by the bottom of the box.",
+      "border": true,
+      "scrollbars": 0,
+      "width": 220,
+      "height": 60
+     },
+     {
+      "type": "text",
+      "label": null,
+      "value": "",
+      "border": true,
+      "scrollbars": 4,
+      "width": 200,
+      "height": 60
+     }
+    ],
+    "height": 64
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "button",
+      "label": "Wide",
+      "value": null,
+      "width": 300,
+      "height": 30
+     },
+     {
+      "type": "button",
+      "label": "Too",
+      "value": null,
+      "width": 300,
+      "height": 30
+     }
+    ],
+    "width": 520,
+    "height": 34
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "group",
+      "label": null,
+      "value": null,
+      "children": [
+       {
+        "type": "col",
+        "label": null,
+        "value": null,
+        "children": [
+         {
+          "type": "label",
+          "label": null,
+          "value": "one",
+          "text_halign": 1,
+          "text_valign": 0,
+          "height": 30
+         },
+         {
+          "type": "label",
+          "label": null,
+          "value": "two",
+          "text_halign": 1,
+          "text_valign": 0,
+          "height": 30
+         },
+         {
+          "type": "label",
+          "label": null,
+          "value": "three",
+          "text_halign": 1,
+          "text_valign": 0,
+          "height": 30
+         }
+        ]
+       }
+      ],
+      "border": true,
+      "scrollbars": 0,
+      "width": 200,
+      "height": 70
+     },
+     {
+      "type": "list",
+      "label": null,
+      "value": null,
+      "row_template": [
+       [
+        {
+         "type": "label",
+         "label": null,
+         "value": "a row label that is wider than its cell",
+         "text_halign": 1,
+         "text_valign": 0
+        },
+        0,
+        true
+       ]
+      ],
+      "row_count": 5,
+      "row_height": 24,
+      "border": true,
+      "scrollbars": 0,
+      "width": 220,
+      "height": 70
+     }
+    ],
+    "height": 74
+   }
+  ]
+ },
+ "geometry": {
+  "x": -1,
+  "y": -1,
+  "w": 560,
+  "h": 360
+ },
+ "resizable": false,
+ "collapsed": null,
+ "closable": true,
+ "transparent": false,
+ "border": true,
+ "accepts_input": true,
+ "size_constraint": null,
+ "edge_constraint": null,
+ "font": ""
+}

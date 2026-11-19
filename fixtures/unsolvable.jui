@@ -1,0 +1,41 @@
+{
+ "version": 1,
+ "title": "Unsolvable",
+ "root": {
+  "type": "col",
+  "label": null,
+  "value": null,
+  "children": [
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "button",
+      "label": "Taller than its row",
+      "value": null,
+      "width": 160,
+      "height": 40
+     }
+    ],
+    "height": 34
+   }
+  ]
+ },
+ "geometry": {
+  "x": -1,
+  "y": -1,
+  "w": 400,
+  "h": 160
+ },
+ "resizable": false,
+ "collapsed": null,
+ "closable": true,
+ "transparent": false,
+ "border": true,
+ "accepts_input": true,
+ "size_constraint": null,
+ "edge_constraint": null,
+ "font": ""
+}

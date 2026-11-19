@@ -1,0 +1,84 @@
+name: Draws differently from the game
+description: A window looks different in the designer than in the game client. The most useful report.
+title: "Draws differently: "
+labels: ["client-mismatch"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks: these reports are how the designer gets closer to the client. Each one needs the window, a picture
+        from the game and the designer's picture of the same window, so the two can be compared pixel for pixel.
+
+        **Why 1:1 matters.** The comparison is made on exact pixels: half-pixel offsets, 9-slice margins, glyph
+        widths. A screenshot that was scaled (by the capture tool, the OS display scaling, a chat app or an image
+        host) blurs and moves every edge, and the difference can no longer be measured. Take the screenshot with the
+        game's own screenshot key (it saves to `screenshots/` in your NWN user folder), or any tool that
+        saves the screen as it is, and attach the PNG file itself, not a copy pasted from a viewer.
+
+        Never attach game files (textures, fonts, `nui_skin.tml`) from the game or from a server's haks: name them
+        instead.
+  - type: textarea
+    id: window
+    attributes:
+      label: The window
+      description: >-
+        The window's JSON: a `.jui`, the JSON your script passes to `NuiCreate` (a `JsonDump` from a log is fine),
+        a nui-preview dump, or a designer project. Attach the file, or paste it in a code block.
+      placeholder: |
+        ```json
+        {"version": 1, "title": "...", "root": {...}}
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: >-
+        1. A 1:1 screenshot of the window in the game (not scaled; see above).
+        2. The designer's picture of the same window: a screenshot of the canvas at the same screen size and GUI
+        scale, or `pnpm render`'s PNG.
+        Mark or describe where they differ.
+    validations:
+      required: true
+  - type: input
+    id: gui-scale
+    attributes:
+      label: GUI scale
+      description: The game's GUI scale setting (e.g. 1.0) and the screen resolution.
+      placeholder: "1.0, 1920x1080"
+    validations:
+      required: true
+  - type: input
+    id: skin
+    attributes:
+      label: Skin
+      description: >-
+        The skin the window was drawn with: the game's default, a built-in skin of the designer (which one), or a
+        `nui_skin.tml` from a hak or override folder (which hak or server). Use the same skin in both pictures.
+      placeholder: "the game's default / Ink and brass / mymodule_skin.hak"
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: Game version
+      description: The client build, e.g. 8193.37-17 (on the main menu, or at the top of the client log).
+      placeholder: "8193.37-17"
+    validations:
+      required: true
+  - type: input
+    id: designer-version
+    attributes:
+      label: Designer version or commit
+      description: The commit you run (`git rev-parse --short HEAD`), or the release.
+      placeholder: "37843f6"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: >-
+        What you expected, which element differs, the Problems panel's list if it matters, or anything you already
+        found out (a decompile reference, a measurement).

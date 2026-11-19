@@ -1,0 +1,36 @@
+{
+  "$schema": "./style.schema.json",
+  "$comment": "A starter house style: copy this file, change the id and title, and list it (or its folder) in nui-designer.ini's `styles`. Every key is here with a neutral default; style.schema.json describes each one (an editor with JSON Schema support shows it as you type). A rule not listed under `rules`, or listed with \"enabled\": false, is off. Every rule also takes enabled, severity (error, warning or info), exempt (window names it skips), title and summary.",
+  "id": "example",
+  "title": "Example house style",
+  "description": "A starting point for your own house style: a spacing grid, standard sizes, short tooltips and a small palette.",
+  "source": "styles/example.json",
+  "knownWindowKeys": [],
+  "plugin": "example-rules.mjs",
+  "rules": {
+    "fixed-size": { "enabled": false, "$comment": "Turn on if windows must not be resizable.", "exempt": [] },
+    "max-content": { "width": 1000, "height": 720 },
+    "frame": { "enabled": false, "$comment": "Turn on if every window's geometry must be its content plus the client's frame." },
+    "gaps": { "allowed": [4, 8, 16], "fillerOver": 32 },
+    "row-grid": { "height": 36 },
+    "control-height": { "allowed": [32, 36] },
+    "margins": { "allowed": [0, 2, 4] },
+    "disabled-tip": { "severity": "info" },
+    "tooltip-length": { "max": 80 },
+    "no-help-text": { "maxChars": 300 },
+    "list-rows": { "minHeight": 28 },
+    "close-last": { "enabled": false },
+    "close-width": { "enabled": false, "width": 120 },
+    "drawn-progress": { "enabled": false, "hint": "draw the bar instead: a track rect and a fill rect whose rect is bound" },
+    "palette": {
+      "enabled": false,
+      "$comment": "List your palette's colours as [r, g, b] and turn it on.",
+      "colours": [[0, 0, 0], [255, 255, 255]],
+      "artItems": 16
+    },
+    "fonts": { "enabled": false, "$comment": "The skin's [[fonts]] names your windows may use.", "allowed": ["text", "title"] },
+    "label-budget": { "pxPerChar": 8, "labelPad": 8, "buttonPad": 24 },
+    "no-refresh": { "enabled": false },
+    "no-empty-window": { "$comment": "A rule of the plugin (example-rules.mjs): its common settings work here too.", "severity": "warning" }
+  }
+}

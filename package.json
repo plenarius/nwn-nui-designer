@@ -1,0 +1,52 @@
+{
+  "name": "nwn-nui-designer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A visual designer for Neverwinter Nights: Enhanced Edition NUI windows",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.18.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "test": "vitest run",
+    "render": "tsx src/node/cli.ts",
+    "check": "tsx src/node/check.ts",
+    "golden": "tsx golden/run.ts",
+    "fixtures": "tsx fixtures/make.ts",
+    "smoke": "tsx tests/editor.browser.ts --no-game",
+    "screenshots": "tsx tools/screenshots.ts",
+    "golden:layout": "tsx golden/layout_fuzz.ts",
+    "e2e": "tsx tests/editor.browser.ts",
+    "roundtrip": "tsx tests/roundtrip.cli.ts",
+    "nss:server": "tsx tests/server/nwscript_on_server.ts",
+    "skin": "tsx src/node/skin.ts",
+    "reskin": "tsx src/node/reskin.ts",
+    "export-theme": "tsx src/node/theme.ts",
+    "skin:roundtrip": "tsx tests/skinround.cli.ts",
+    "e2e:skin": "tsx tests/skin.browser.ts",
+    "bench:redraw": "tsx tests/redraw.bench.ts",
+    "style:schema": "tsx tools/style-schema.ts"
+  },
+  "dependencies": {
+    "opentype.js": "^2.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.1.1",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "oxlint": "1.91.0",
+    "playwright-core": "1.49.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
+}

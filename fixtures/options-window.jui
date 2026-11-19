@@ -1,0 +1,94 @@
+{
+ "version": 1,
+ "title": "Options",
+ "root": {
+  "type": "col",
+  "label": null,
+  "value": null,
+  "children": [
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "label",
+      "label": null,
+      "value": "Theme",
+      "text_halign": 1,
+      "text_valign": 0,
+      "width": 100,
+      "height": 32,
+      "tooltip": "How the classic NWN windows look"
+     },
+     {
+      "type": "options",
+      "label": null,
+      "value": {
+       "bind": "op_theme",
+       "number_flags": 0,
+       "number_precision": 0,
+       "text_flags": 0
+      },
+      "direction": 0,
+      "elements": [
+       "Ink and brass",
+       "Classic"
+      ],
+      "id": "op_theme",
+      "tooltip": "How the classic NWN windows look",
+      "width": 284,
+      "height": 32
+     }
+    ],
+    "width": 392,
+    "height": 36,
+    "margin": 0
+   },
+   {
+    "type": "row",
+    "label": null,
+    "value": null,
+    "children": [
+     {
+      "type": "spacer",
+      "label": null,
+      "value": null,
+      "width": 272,
+      "height": 36,
+      "margin": 0
+     },
+     {
+      "type": "button",
+      "label": "Close",
+      "value": null,
+      "id": "op_close",
+      "width": 116,
+      "height": 32
+     }
+    ],
+    "width": 392,
+    "height": 36,
+    "margin": 0
+   }
+  ],
+  "width": 392,
+  "height": 72,
+  "margin": 0
+ },
+ "geometry": {
+  "x": -1,
+  "y": -1,
+  "w": 408,
+  "h": 121
+ },
+ "resizable": false,
+ "collapsed": null,
+ "closable": true,
+ "transparent": false,
+ "border": true,
+ "accepts_input": true,
+ "size_constraint": null,
+ "edge_constraint": null,
+ "font": ""
+}
