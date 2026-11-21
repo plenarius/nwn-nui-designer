@@ -14,6 +14,7 @@ export const RES_TYPES: Readonly<Record<string, number>> = {
   are: 2012,
   ifo: 2014,
   "2da": 2017,
+  gui: 2047,
   txi: 2022,
   dds: 2033,
   hak: 2061,

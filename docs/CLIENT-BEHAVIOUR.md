@@ -30,6 +30,7 @@ No Beamdog code or file content is reproduced here: only names of functions and 
 - [Images](#images)
 - [What scripts can set](#what-scripts-can-set)
 - [What NUI cannot style](#what-nui-cannot-style)
+- [The original GUI](#the-original-gui)
 - [Not known yet](#not-known-yet)
 
 ## The skin file
@@ -453,6 +454,49 @@ From `nw_inc_nui.nss` and `nwscript.nss` [docs], and the client's JSON keys [cod
   window drag and resize, GIF and WebM playback and the encouraged glow. Everything else is a bind update from the
   server, one message per change.
 - Pre-game screens (main menu, server list, the engine's character creation) use the classic GUI, not NUI.
+
+## The original GUI
+
+The windows from before NUI (character record, inventory, options, character select, the creation wizard, ...) are
+panel models placed on each other by `.gui` layouts. `pnpm old-gui` and the reskin work from these facts.
+
+- **Models and layouts** [data]: a `.gui` (GFF type `GUI `) places each object's model (`Obj_ResRef`) on a hook node
+  (`Obj_Parent_Hook`) of its parent (`Obj_Parent`, a tag), with a caption (`Obj_Caption`: `AurString_Font`, the text
+  or a string reference). The panels the client builds in code (character record, inventory, store, spellbook,
+  journal) have no layout: the client places their pieces on their models' hooks itself.
+- **Scale** [data, inferred]: a GUI model is laid out at 100 screen pixels per model unit at UI scale 1.
+- **Placing** [data]: a `.gui` object sits at its parent's hook node plus its `Obj_X` and `Obj_Y`; a node's place is
+  its parents' transforms and its own position and orientation (a quaternion in a compiled model, an axis and angle
+  in an ASCII one). An animation's first position and orientation keys move a node in that state. Some hooks are
+  turned: the rest popup's `status` hook turns its bar on its side, so the bar runs left to right.
+- **Which way up** [tested in game]: a texture's top row is texture v = 1. The client reads a DDS and a TGA alike,
+  bottom row first, whatever the TGA's origin flag says.
+- **States** [data]: a control's states are animations of its model (`up`, `down`, `hilite`, `disabled`,
+  `encouraged`, `checkedup`, `checkeddown`, `uncheckedup`, `uncheckeddown`, `checkedhilite`), each pointing the
+  meshes at another rectangle of the same atlas (an animmesh's `animtverts`). A control may read another control's
+  texture: the old close button `ctl_btn_x` draws `ctl_chk_pre`; the checkbox `ctl_btn_xch` draws its box and mark
+  from the tab-icon atlas `ctl_btn_jnl_inv`.
+- **Run-time sizes** [data, inferred]: the `size` and `thumbsize` animations resize a piece (the scrollbar's track and
+  thumb, the radial band); `percentage` fills a bar between its first frame (empty) and its last (full).
+- **Stretching** [tested in game]: a quad's texture vertices are mapped over its geometry, so a cell of a colour
+  strip is stretched over a whole panel (`gui_boxes*` cells 20 to 200 times). With filtering on, a stretched span
+  also reads half a texel past each end. Some pieces are strips turned on their side.
+- **txi** [tested in game]: `filter 0` draws without filtering (each pixel takes the texel it falls in); `clamp 3`
+  repeats the edge texel past both axes' ends instead of wrapping (the tab bodies read far past their texture's last
+  row, so that row fills the body); `mipmap 0` draws the base level at every size.
+- **Shared list rows** [tested in game]: the spell tree, the spell boxes, the journal's quests, the Player List and
+  the store draw their rows from one strip of `gui_boxes_ingame` (columns 224-227, `filter 0`): each row 0.34 units
+  tall at a 0.4 pitch, from half a texel inside the strip's first row to half a texel past its last.
+- **Built-in names** [code: strings]: the client names some textures in its code, and builds families with a number
+  (`ctl_inv_sto_tab%d`, `gui_icon_%dx%d...`, `gui_icon_armr%d...`, `gui_mp_custom%02d...`, `pnl_mapgen_%dx%d`).
+- **Fonts** [tested in game]: the client remaps every old-GUI font name to one of three TrueType files:
+  `fnt_maintext` (titles and labels, `fnt_galahad14`, about 17 px), `fnt_default` (the rest, about 14 px) and
+  `fnt_default_hr` (dialog and floating text with the large-font option, about 16 px). The game's `.txi` of each name
+  (contrast, outline, spacing) still applies. Fonts are loaded once per client: no per-player switch.
+- **Where a player's files count** [tested in game]: a file in the user folder's `development/` beats the haks a
+  server sends through NWSync; a file in `override/` does not.
+- **DXT1** [tested in game]: a dark warm face that 5:6:5 cannot hold exactly is stored as a mix that leans green
+  ("olive"); a face colour 5:6:5 stores exactly decodes to itself in every block.
 
 ## Not known yet
 

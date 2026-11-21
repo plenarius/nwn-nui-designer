@@ -1,12 +1,14 @@
 /**
- * The skin export dialog's "Full theme" tab: the NUI skin and the original GUI retoned to match it (src/core/reskin/
+ * The skin export dialog's "Full theme" tab: the NUI skin and the original GUI redrawn to match it (src/core/reskin/
  * theme.ts, the same as `pnpm export-theme`), downloaded as one zip: stock/ and a hak under the stock names, and,
- * with a prefix, prefixed/, its hak and prefixed.json for a server that lets each player choose. The original GUI is
- * read from the user's own game folder: without one loaded, the tab says so and does nothing.
+ * with a prefix, prefixed/, its hak and prefixed.json for a server that lets each player choose. Optionally the skin's
+ * font as the original GUI's three fonts. The original GUI is read from the user's own game folder: without one
+ * loaded, the tab says so and does nothing. The original-GUI checks run on the result.
  */
 import { useMemo, useState } from "react";
 import { ResMan } from "../../core/res/resman.js";
 import { writeZip } from "../../core/res/zip.js";
+import { FontExportError, oldGuiFonts } from "../../core/reskin/oldguifonts.js";
 import { LIGHT_WARNING, type ThemeResult, exportTheme, hasGame, lightCheck, normalisePrefix, themePackage } from "../../core/reskin/theme.js";
 import type { SkinProject } from "../../core/skin/project.js";
 import { errorText } from "../../core/errors.js";
@@ -23,6 +25,16 @@ export function ThemeExport({ project, resman, nameBad, onSaved }: { project: Sk
   const [usePrefix, setUsePrefix] = useState(false);
   const [prefix, setPrefix] = useState("");
   const [haks, setHaks] = useState(true);
+  const [fonts, setFonts] = useState(false);
+  // whether the skin's text font may be shipped as the original GUI's fonts, and why not
+  const fontsBlocked = useMemo(() => {
+    try {
+      oldGuiFonts(project);
+      return null;
+    } catch (e) {
+      return e instanceof FontExportError ? e.message : errorText(e);
+    }
+  }, [project]);
   const [state, setState] = useState<State>({ kind: "idle" });
   const light = useMemo(() => (project.style ? lightCheck(project.style) : null), [project.style]);
   const game = hasGame(resman);
@@ -30,7 +42,7 @@ export function ThemeExport({ project, resman, nameBad, onSaved }: { project: Sk
   const blocked = !project.style
     ? "This skin has no generator style, and the original GUI's palette is derived from one: open it in the Generator (or start from a built-in skin) first."
     : !game
-      ? "No game loaded. The original GUI is retoned from your own install's textures: load your game folder (Game and haks in the toolbar) first."
+      ? "No game loaded. The original GUI is redrawn from your own install's textures: load your game folder (Game and haks in the toolbar) first."
       : null;
   const hakName = project.name;
   const prefixHak = `${project.name.slice(0, 14)}_p`;
@@ -45,6 +57,7 @@ export function ThemeExport({ project, resman, nameBad, onSaved }: { project: Sk
         project,
         resman: rm,
         prefix: usePrefix ? prefix : undefined,
+        oldGuiFonts: fonts && !fontsBlocked,
         progress: async (done, total, name) => {
           setState({ kind: "running", done, total, name });
           // let the browser draw between textures (compressing one can take a moment)
@@ -63,7 +76,8 @@ export function ThemeExport({ project, resman, nameBad, onSaved }: { project: Sk
   return (
     <>
       <p className="muted small">
-        The whole theme in one package: this NUI skin and the original GUI (character record, inventory, chat, quickbar, character select, the creation wizard, ...) retoned from your own game's textures to match it.
+        The whole theme in one package: this NUI skin and the original GUI (character record, inventory, chat, quickbar, character select, the creation wizard, ...) redrawn from your own game's textures in its colours: flat
+        faces, one rule, the pressed fill and the hover glow.
         Everything under the stock names goes in <code>stock/</code> and <code>{hakName}.hak</code>: list the hak in the module (or put the files in an override folder) and every window has the look.
       </p>
       {blocked && (
@@ -82,6 +96,9 @@ export function ThemeExport({ project, resman, nameBad, onSaved }: { project: Sk
         </label>
         <label className="inline">
           <input type="checkbox" checked={usePrefix} onChange={(e) => setUsePrefix(e.target.checked)} disabled={running} /> Also under a prefix, for players to choose
+        </label>
+        <label className="inline" title={fontsBlocked ?? "fnt_maintext, fnt_default and fnt_default_hr: copies of the skin's text font, for every player"}>
+          <input type="checkbox" checked={fonts && !fontsBlocked} onChange={(e) => setFonts(e.target.checked)} disabled={running || !!fontsBlocked} data-testid="theme-fonts" /> The skin's font for the original GUI too
         </label>
         {usePrefix && (
           <label className="field">
@@ -102,6 +119,13 @@ export function ThemeExport({ project, resman, nameBad, onSaved }: { project: Sk
           one of them already holds a theme under the stock names.
         </p>
       )}
+      {fonts && !fontsBlocked && (
+        <p className="muted small">
+          The skin's text font goes in <code>stock/</code> as <code>fnt_maintext</code>, <code>fnt_default</code> and <code>fnt_default_hr</code>, the three fonts the client draws the original GUI with. Not in <code>prefixed/</code>: the
+          client loads its fonts once, so every player gets them whatever theme they choose.
+        </p>
+      )}
+      {fontsBlocked && <p className="muted small">The skin's font stays NUI only: {fontsBlocked}.</p>}
       {state.kind === "running" && (
         <p className="muted small" role="status">
           <progress max={state.total} value={state.done} /> Original GUI: {state.done} of {state.total} {state.name && <code>{state.name}</code>}
@@ -121,15 +145,26 @@ function ThemeDone({ r, zip, file, onSaved }: { r: ThemeResult; zip: Uint8Array;
       <h3>Ready</h3>
       <ul className="left-out">
         <li>
-          <code>stock/</code>: {Object.keys(r.stock).length} files: the NUI skin ({r.skinItems.length}) and {m.textures.length} original-GUI textures with their .txi
+          <code>stock/</code>: {Object.keys(r.stock).length} files: the NUI skin ({r.skinItems.length}) and {m.textures.length} original-GUI textures with their .txi ({m.textures.filter((t) => t.action === "redrawn").length} redrawn)
         </li>
         {r.prefixed && (
           <li>
             <code>prefixed/</code>: the same under <code>{r.prefixed.prefix}</code>, the skin <code>{r.prefixed.manifest.skin.resref}</code>, {Object.keys(r.prefixed.manifest.textures).length} texture overrides in <code>prefixed.json</code>
           </li>
         )}
+        {r.fonts && (
+          <li>
+            Original GUI fonts: copies of <code>{r.fonts.source}.ttf</code>
+          </li>
+        )}
         <li>
           Left stock: {m.manual.length} icons, cursors, pictures and bitmap fonts (they need an artist; <code>report.md</code> lists them)
+        </li>
+        <li className={r.checks.failures ? "finding error" : undefined} data-testid="theme-checks">
+          Original GUI checks: {Object.entries(r.checks.counts)
+            .map(([k, v]) => `${k} ${v.checked - v.failed}/${v.checked}`)
+            .join(", ")}
+          {r.checks.failures ? ` (${r.checks.failures} failures, report.md)` : ", all pass"}
         </li>
         {bad.length > 0 && (
           <li className="finding error">

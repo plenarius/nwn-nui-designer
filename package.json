@@ -26,6 +26,7 @@
     "skin": "tsx src/node/skin.ts",
     "reskin": "tsx src/node/reskin.ts",
     "export-theme": "tsx src/node/theme.ts",
+    "old-gui": "tsx src/node/oldgui.ts",
     "skin:roundtrip": "tsx tests/skinround.cli.ts",
     "e2e:skin": "tsx tests/skin.browser.ts",
     "bench:redraw": "tsx tests/redraw.bench.ts",

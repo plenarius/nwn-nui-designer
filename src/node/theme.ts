@@ -1,9 +1,10 @@
 /**
- * pnpm export-theme: a whole theme in one step, the NUI skin and the original (MDL-panel) GUI retoned to match it, so
+ * pnpm export-theme: a whole theme in one step, the NUI skin and the original (MDL-panel) GUI redrawn to match it, so
  * a server ships one package. docs/RESKIN-EVERYTHING.md is the guide.
  *
  *   pnpm export-theme SKIN -o DIR [--out-hak NAME] [--prefix P] [--prefix-hak NAME] [--game DIR] [--hak FILE]...
  *                     [--override DIR]... [--no-haks] [--alpha keep|opaque] [--format auto|dds|tga] [--no-sheet]
+ *                     [--old-gui-fonts]
  *
  * SKIN: a built-in skin (ink, bronze, brass, verdigris, oxblood), a generator preset (a-bronze, d-iron, ...), or a
  * skin project (*.nuiskin.json) made in the skin editor's generator.
@@ -11,7 +12,7 @@
  * Reads the stock original GUI from your own game (--game, else $NWN_ROOT, else nui-designer.ini's game) and the haks
  * and override folders the settings name (or --hak / --override; --no-haks: the game alone). Writes, under DIR:
  *
- *   stock/                output A: the NUI skin and the retoned original GUI under the stock names (with the stock
+ *   stock/                output A: the NUI skin and the redrawn original GUI under the stock names (with the stock
  *                         .txi files). Put the files in a hak, or a player's override folder, for the whole look.
  *   NAME.hak              with --out-hak NAME: output A as a hak (at most 16 characters)
  *   prefixed/             output B, with --prefix P: the same files under the prefix, for a server that lets each
@@ -24,6 +25,11 @@
  *   reskin-manifest.json  every original-GUI texture: its source, format, size, what was done, the checks
  *   contact-*.png         stock and new side by side, per group (--no-sheet: none)
  *
+ * --old-gui-fonts: also the skin's text font as the original GUI's three fonts (fnt_maintext.ttf, fnt_default.ttf,
+ * fnt_default_hr.ttf) in stock/, so both GUIs draw one font. Only a font whose licence allows shipping it (the built-in
+ * skins' OFL fonts, or a font whose own name table says OFL, Apache, Ubuntu Font Licence or public domain); refused
+ * otherwise. Not in prefixed/: the client loads fonts once, so they reach every player.
+ *
  * --format: what a texture that is a TGA in the game is written as (auto, the default: a DDS unless its error is too
  * high). No prefixed name may start like the game's own names (gui_, ctl_, ...) or be a name the game or a hak
  * already has.
@@ -31,7 +37,10 @@
  * Everything written is derived from your own game files: keep it out of any public repository. DIR may not be inside
  * this repository (except its ignored local/ folder).
  *
- * Exit code: 0 when every texture passed its checks, 1 when one failed, 2 on a usage error (no game, a bad prefix).
+ * It then runs the original-GUI checks (pnpm old-gui check) on stock/ and puts them in report.md.
+ *
+ * Exit code: 0 when every texture and the original-GUI checks passed, 1 when one failed, 2 on a usage error (no game,
+ * a bad prefix).
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -46,7 +55,7 @@ import { writeContactSheets } from "./reskinsheet.js";
 import { UsageError, checkOutDir, stockResources } from "./stockres.js";
 
 const USAGE =
-  "pnpm export-theme SKIN -o DIR [--out-hak NAME] [--prefix P] [--prefix-hak NAME] [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks] [--alpha keep|opaque] [--format auto|dds|tga] [--no-sheet]";
+  "pnpm export-theme SKIN -o DIR [--out-hak NAME] [--prefix P] [--prefix-hak NAME] [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks] [--alpha keep|opaque] [--format auto|dds|tga] [--no-sheet] [--old-gui-fonts]";
 
 async function main(): Promise<number> {
   const { values: a, positionals } = parseArgs({
@@ -64,6 +73,7 @@ async function main(): Promise<number> {
       alpha: { type: "string" },
       format: { type: "string" },
       "no-sheet": { type: "boolean" },
+      "old-gui-fonts": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -97,6 +107,7 @@ async function main(): Promise<number> {
     alpha: a.alpha as AlphaMode | undefined,
     format: (a.format ?? "auto") as OutputFormat,
     prefix: a.prefix,
+    oldGuiFonts: a["old-gui-fonts"],
     previews: !a["no-sheet"],
     progress: (done, total) => {
       const pct = Math.floor((done / total) * 10);
@@ -122,6 +133,7 @@ async function main(): Promise<number> {
   const bad = m.textures.filter((t) => !t.validation.ok);
   const dds = m.textures.filter((t) => t.output.startsWith("dds")).length;
   console.log(`${join(out, "stock")}: ${Object.keys(r.stock).length} files (NUI skin ${r.skinItems.length}; original GUI ${m.textures.length} textures, ${dds} DDS and ${m.textures.length - dds} TGA, with their .txi)`);
+  if (r.fonts) console.log(`old GUI fonts: ${Object.keys(r.fonts.files).join(", ")} from the skin's ${r.fonts.source}.ttf (${r.fonts.why})`);
   if (hak) console.log(`${join(out, `${hak}.hak`)}: ${files[`${hak}.hak`]!.length} bytes`);
   if (r.prefixed) {
     console.log(`${join(out, "prefixed")}: ${Object.keys(r.prefixed.files).length} files under ${r.prefixed.prefix} (skin ${r.prefixed.manifest.skin.resref}; ${Object.keys(r.prefixed.manifest.textures).length} texture overrides in ${join(out, "prefixed.json")})`);
@@ -131,8 +143,9 @@ async function main(): Promise<number> {
   console.log(`${join(out, "report.md")}: ${bad.length} failed a check, ${m.skipped.length} skipped, ${m.manual.length} left stock (icons, cursors, pictures, bitmap fonts: need an artist)`);
   for (const t of bad) console.log(`  check failed: ${t.name}: ${t.validation.problems.join("; ")}`);
   for (const s of m.skipped) console.log(`  skipped: ${s.name}: ${s.why}`);
+  console.log(`original GUI checks: ${Object.entries(r.checks.counts).map(([k, v]) => `${k} ${v.checked - v.failed}/${v.checked}`).join(", ")}${r.checks.failures ? ` (${r.checks.failures} failures, report.md)` : ", all pass"}`);
   if (r.light.light) console.log(`\n${LIGHT_WARNING}\n(window body ${r.light.body}, luma ${r.light.luma})`);
-  return bad.length ? 1 : 0;
+  return bad.length || r.checks.failures ? 1 : 0;
 }
 
 main().then(

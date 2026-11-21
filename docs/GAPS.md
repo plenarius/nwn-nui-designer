@@ -72,6 +72,27 @@ From the deity window screenshot ([DESIGN.md](../DESIGN.md#checked-against-the-c
   group is larger than the solver's extent (by about 45 px on 1320). Needs a second screenshot with another content
   height, or the decompile.
 
+## The original GUI
+
+`pnpm old-gui` takes the inventory and runs the checks ([RESKIN-EVERYTHING.md](RESKIN-EVERYTHING.md#the-original-guis-inventory-and-checks)).
+Still open, in the order they are planned:
+
+- **Previews are approximate where the client decides in code**: the number of list rows and their texts, which tab
+  is selected, the scrollbar thumb's length, and each label's font size and place. The panels with no layout and no
+  hand layout (chat, dialogue, quickbar, party bar, radial menu, DM bar) show only what sits on their hooks.
+- **The frame check lists, it does not fail**: some findings are by design (a doubled stock rule drawn as one, a
+  separator a stretched cell drops), so a person reads them. It takes a few seconds a screen (about 150 screens).
+- **Lines dropped with shared stretched cells**: the Character Record's ability grid and page lines, and the server
+  list's row separators, share texels with cells big panels stretch, so the redraw drops them (as the reference
+  redraw does).
+- **The editor runs the export and its checks, not the previews.** `pnpm old-gui inventory`, `previews` and the frame
+  check are command-line only (they read the game executable and draw about 150 screens).
+- **Hak size.** 16 textures stay TGA with `--format auto` (4 MB of the 11.9 MB hak) because DXT would move a flat face
+  by 5 to 11 levels where a 4 x 4 block holds a frame's edge, rule and face. A better block fit (or frames placed on
+  block edges) would let them be DDS.
+- **Roles of new textures.** The role tables are the stock 8193.37 client's; a newer client's textures show as
+  uncategorised until someone looks at them.
+
 ## Resources
 
 - **NWSync** manifests and the `E1` formats (ERF E1.0, KEY/BIF E1) are not read.

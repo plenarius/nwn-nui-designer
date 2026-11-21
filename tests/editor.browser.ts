@@ -642,6 +642,7 @@ try {
     check(await buildTheme.isDisabled(), "and its build button is disabled");
   }
   check((await page.getByTestId("theme-light").count()) === 0, "Bronze is not a light skin: no warning");
+  check(await page.getByTestId("theme-fonts").isEnabled(), "Bronze's font is under the OFL: it may be the original GUI's font too");
   await page.keyboard.press("Escape");
   await page.locator("dialog.modal").waitFor({ state: "detached", timeout: 5000 });
   // "Open another skin": straight back to the start when nothing changed, asks first when something did

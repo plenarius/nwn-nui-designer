@@ -1,5 +1,5 @@
 /**
- * pnpm reskin: the original (MDL-panel) GUI's textures retoned to match a designer skin, so one theme covers the NUI
+ * pnpm reskin: the original (MDL-panel) GUI's textures redrawn to match a designer skin, so one theme covers the NUI
  * windows and the old ones. docs/RESKIN-EVERYTHING.md is the playbook.
  *
  *   pnpm reskin SKIN -o DIR [--out-hak NAME] [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks]
@@ -36,7 +36,6 @@ import { type AlphaMode, alphaModeOf } from "../core/reskin/colour.js";
 import type { OutputFormat } from "../core/reskin/compress.js";
 import { paletteFromStyle } from "../core/reskin/palette.js";
 import { TEXTURE_EXTS, reskin, reskinHak, reportMarkdown } from "../core/reskin/reskin.js";
-import { nuiPieces } from "../core/reskin/theme.js";
 import { AUTO } from "../core/reskin/textures.js";
 import { SkinChoiceError, chooseSkin } from "./openskin.js";
 import { writeContactSheets } from "./reskinsheet.js";
@@ -90,7 +89,7 @@ async function main(): Promise<number> {
   console.log(`skin: ${skin.title} (${skin.from}); alpha: ${alpha}; format: ${format}`);
   console.log(`reading: ${game}${haks.length ? `, ${haks.length} hak(s)` : ""}${overrides.length ? `, override ${overrides.join(", ")}` : ""}`);
 
-  const res = await reskin(resman, { palette, nui: nuiPieces(skin.style, skin.own), skin: { id: skin.id, title: skin.title, from: skin.from }, alpha, format, only, previews: !a["no-sheet"] });
+  const res = await reskin(resman, { palette, skin: { id: skin.id, title: skin.title, from: skin.from }, alpha, format, only, previews: !a["no-sheet"] });
 
   const out = a.out;
   const texDir = join(out, "textures");

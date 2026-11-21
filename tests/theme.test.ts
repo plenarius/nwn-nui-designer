@@ -20,6 +20,7 @@ import {
   prefixProblems,
   themePackage,
 } from "../src/core/reskin/theme.js";
+import { FontExportError, fontLicence, oldGuiFonts, skinTextFont } from "../src/core/reskin/oldguifonts.js";
 import { AUTO, MANUAL } from "../src/core/reskin/textures.js";
 import { type SkinProject, fromOpenSkin, splitFile } from "../src/core/skin/project.js";
 import { THEMES } from "../src/core/skin/themes.js";
@@ -196,6 +197,34 @@ describe("export", () => {
     expect(Object.keys(pkg).filter((p) => p.startsWith("prefixed/")).length).toBe(Object.keys(b.files).length);
     expect(pkg["bz_theme_p.hak"]).toBeDefined();
     expect(() => themePackage(r, { hak: "same", prefixHak: "same" })).toThrow(/different names/);
+  });
+
+  it("runs the original-GUI checks on output A and reports them", async () => {
+    const r = await exportTheme({ project: builtIn("bronze"), resman: fakeGame(), format: "tga" });
+    expect(Object.keys(r.checks.counts)).toEqual(["categories", "state icons", "fill bars", "coverage", "flatness", "fonts"]);
+    // the synthetic game has no models, so its inventory knows none of the textures: coverage says so
+    expect(r.checks.findings.find((f) => f.check === "coverage")?.message).toMatch(/the inventory has no such texture/);
+    expect(r.report).toMatch(/## Original GUI checks[\s\S]*coverage: \d+ checked/);
+  });
+
+  it("the skin's font as the original GUI's three fonts, in output A only, its licence travelling with it", async () => {
+    const r = await exportTheme({ project: builtIn("bronze"), resman: fakeGame(), format: "tga", prefix: "bz", oldGuiFonts: true });
+    expect(r.fonts!.source).toBe(skinTextFont(builtIn("bronze").tml));
+    const src = r.stock[`${r.fonts!.source}.ttf`]!;
+    for (const n of ["fnt_maintext.ttf", "fnt_default.ttf", "fnt_default_hr.ttf"]) expect(r.stock[n], n).toEqual(src);
+    expect(Object.keys(r.prefixed!.files).some((n) => n.includes("fnt_"))).toBe(false);
+    expect(new TextDecoder().decode(r.stock["nuid_skin_lic.txt"])).toMatch(/fnt_maintext\.ttf, fnt_default\.ttf, fnt_default_hr\.ttf are copies/);
+    expect(r.report).toMatch(/Old GUI fonts/);
+    expect(r.checks.counts.fonts!.failed).toBe(0);
+  });
+
+  it("refuses the font option for a font whose licence is not known to allow shipping it", async () => {
+    const p = builtIn("bronze");
+    const font = skinTextFont(p.tml)!;
+    const mine = { ...p, files: { ...p.files, [`${font}.ttf`]: { ...p.files[`${font}.ttf`]!, licence: "user" as const, data: new Uint8Array(64) } } };
+    expect(() => oldGuiFonts(mine)).toThrow(FontExportError);
+    await expect(exportTheme({ project: mine, resman: fakeGame(), oldGuiFonts: true })).rejects.toThrow(/old GUI fonts/);
+    expect(fontLicence(p.files[`${font}.ttf`]!, font).ok).toBe(true);
   });
 
   it("a bad prefix stops the export before any work", async () => {

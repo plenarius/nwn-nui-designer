@@ -8,6 +8,13 @@ import { Reader, TruncatedError } from "./source.js";
 export class GffError extends Error {}
 
 /** The field types this reader returns values for (others read as undefined). */
+const T_BYTE = 0;
+const T_CHAR = 1;
+const T_WORD = 2;
+const T_SHORT = 3;
+const T_DWORD = 4;
+const T_INT = 5;
+const T_FLOAT = 8;
 const T_CEXOSTRING = 10;
 const T_RESREF = 11;
 const T_STRUCT = 14;
@@ -66,8 +73,28 @@ export class Gff {
     return { type: this.r.u32(o), label: this.r.str(this.h[4]! + label * 16, 16), data: this.r.u32(o + 8) };
   }
 
-  /** A field's value: strings for CExoString and ResRef, a struct, a list of structs; undefined for other types. */
+  /** A field's value: strings for CExoString and ResRef, numbers for the small integer types and FLOAT, a struct, a
+   * list of structs; undefined for other types. */
   value(f: { type: number; data: number }): GffValue {
+    switch (f.type) {
+      case T_BYTE:
+        return f.data & 0xff;
+      case T_CHAR:
+        return ((f.data & 0xff) << 24) >> 24;
+      case T_WORD:
+        return f.data & 0xffff;
+      case T_SHORT:
+        return ((f.data & 0xffff) << 16) >> 16;
+      case T_DWORD:
+        return f.data >>> 0;
+      case T_INT:
+        return f.data | 0;
+      case T_FLOAT: {
+        const dv = new DataView(new ArrayBuffer(4));
+        dv.setUint32(0, f.data >>> 0, true);
+        return dv.getFloat32(0, true);
+      }
+    }
     const fd = this.h[6]!;
     const fdEnd = fd + this.h[7]!;
     const inData = (o: number, len: number) => {
@@ -113,6 +140,14 @@ export class GffStruct {
   /** Whether the struct has a field named label (case matters, as in the game). */
   has(label: string): boolean {
     return this.fields.some((i) => this.gff.field(i).label === label);
+  }
+
+  /** Every field, in order: its label, GFF type and value (as value() reads it). */
+  entries(): { label: string; type: number; value: GffValue }[] {
+    return this.fields.map((i) => {
+      const f = this.gff.field(i);
+      return { label: f.label, type: f.type, value: this.gff.value(f) };
+    });
   }
 
   /** The value of the field named label, or undefined when the struct has none. */

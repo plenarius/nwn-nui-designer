@@ -135,9 +135,9 @@ export interface Compressed {
 }
 
 /** A picture (rows top to bottom) as a BioWare DDS with every mip level, and its error. */
-export function compressToDds(im: RGBAImage): Compressed {
+export function compressToDds(im: RGBAImage, weights?: ArrayLike<number>, maxLevels = Infinity): Compressed {
   const dxt5 = hasAlpha(im);
-  const bytes = encodeBiowareDds(im, dxt5 ? 4 : 3);
+  const bytes = encodeBiowareDds(im, dxt5 ? 4 : 3, weights, maxLevels);
   const decoded = decodeDds(bytes);
   return { bytes, decoded, error: compressionError(im, decoded, dxt5 ? "dxt5" : "dxt1") };
 }
