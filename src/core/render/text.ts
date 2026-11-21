@@ -135,8 +135,10 @@ export function textLayer(
   if (x1 <= x0 || y1 <= y0) return null;
   const { w, h, mask } = lineMask(font, text);
   const top = y + (font.line - (font.ascent + font.descent)) / 2 - 2;
-  const px = pyRound(x) - 2;
-  const py = pyRound(top);
+  const px = Math.ceil(x - 0.5) - 2;
+  // The GPU fills the pixels whose centres the glyph quad covers, so a line that lands on a half pixel goes up and
+  // left (docs/CLIENT-BEHAVIOUR.md#text).
+  const py = Math.ceil(top - 0.5);
   const cx0 = Math.max(x0, px);
   const cy0 = Math.max(y0, py);
   const cx1 = Math.min(x1, px + w);

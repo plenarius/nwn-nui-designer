@@ -412,6 +412,11 @@ game's: a spacer has no margin in the client, and with that the designer moves i
 is open ([GAPS.md](docs/GAPS.md#found-in-game)). The facts are in
 [CLIENT-BEHAVIOUR.md](docs/CLIENT-BEHAVIOUR.md), marked [measured].
 
+A module's windows were also shot in game at 1:1 (GUI scale 1.0, not committed for the same reason) and each shot
+compared pixel by pixel with the designer's picture of the same JSON, text masked and checked by place and size. The
+facts it settled are marked [compared], and `tests/client-behaviour.test.ts` holds each one the fallback skin can show,
+on a small window.
+
 ## Open questions
 
 1. **niv's gist** (`nuilayout.cpp`) states no licence. nui-preview, and through it this port, follow its set of

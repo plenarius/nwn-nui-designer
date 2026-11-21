@@ -12,6 +12,8 @@ Each fact carries a marker saying how it was checked:
 - **[tested in game]**: tried in the client, with a window built for the purpose or an existing one.
 - **[measured]**: measured on an in-game screenshot of a window (8193.37-17, scaled 1.8x by the capture; the scale was
   fitted from several independent distances, so single edges are good to about ±0.3 px).
+- **[compared]**: a 1:1 in-game screenshot of a window (GUI scale 1.0) compared pixel by pixel with the designer's
+  picture of the same JSON.
 - **[inferred]**: follows from the code or from how Nuklear (the UI library NUI is built on) works, but not seen
   directly.
 
@@ -28,6 +30,7 @@ No Beamdog code or file content is reproduced here: only names of functions and 
 - [Combo boxes](#combo-boxes)
 - [Window frame](#window-frame)
 - [Images](#images)
+- [Draw lists](#draw-lists)
 - [What scripts can set](#what-scripts-can-set)
 - [What NUI cannot style](#what-nui-cannot-style)
 - [Not known yet](#not-known-yet)
@@ -222,7 +225,11 @@ drawn per window with images.
   advances [measured].
 - **Wrap width**: a text box (`NuiText`) wraps short of its width, leaving room for a scrollbar even when there is
   none. For a 500 px box the client's wrap width is in [480, 488) [measured]. The designer uses width − 18.
-- **First line**: the first line of a text box starts 2 px below the box's top [measured].
+- **First line**: the first line of a text box starts 2 px below the box's top [measured], and so does a multiline
+  text edit's [compared].
+- **Text edit inset**: a text edit's text starts 11 px in from its left edge [compared].
+- **Half pixels**: a line of text whose top or left lands on a half pixel goes up and left, as the GPU fills the
+  pixels whose centres the glyph quads cover [compared].
 - **Line pitch**: font size + 4 (21 px for a 17 px font) [measured].
 - **Draw-list text** is drawn with one `nk_draw_text` call: one line, no wrapping, clipped to its rect. The glyph that
   crosses the rect's edge is kept, as `nk_text_clamp` without separators keeps it [code].
@@ -275,6 +282,11 @@ window as wrapped text (`NuiText`).
   can never be bigger than their parent.
 - **Groups and lists** (`LayoutGroup::SetChildren`): a group lays its child out in a solver of its own, whose size is
   only a medium suggestion. A group's content never makes its parent unsolvable. A list row is `row_height` high.
+- **Whole pixels** [compared]: a span places its children one after another at whole-pixel sizes. Each solved size is
+  cut to a whole pixel, and the next child starts where the last one ended: a row of widths 302.6, 176.9 and 64.5 puts
+  its third child at 478.
+- **A forced scrollbar** keeps its room, but the client draws none while the content fits: an empty or short list
+  shows a bare column where the bar would be [compared].
 - **Widgets with no width or height** get a default size: see [Default sizes](#default-sizes).
 - **Solutions**: when several solutions are equally good, C++ Kiwi's choice depends on its maps being sorted by
   symbol. JavaScript ports that keep insertion order pick a different one; the designer's vendored Kiwi sorts its maps.
@@ -360,6 +372,10 @@ Measured on an in-game window with a title bar, at GUI scale 1.0 [measured]:
 - The title bar is **33 px** high.
 - The body's frame starts right under it, with **no gap**.
 - The content is inset **8 px** on the left, right and bottom, and 8 px below the title bar.
+- The title bar's frame is drawn a pixel taller than 33, so the body's frame covers its last row [compared]. The close
+  and collapse buttons are centred in that taller bar.
+- The title starts 8 px in, a pixel further than the frame's 7, and takes `window.header.label_active`: a window the
+  client has just opened has focus [compared].
 - So the frame adds **16 px** to the width and **49 px** to the height (33 + 8 + 8).
 - How GUI scale above 1.0 scales layout units, the frame and the slices is not known. The scrollbar thickness is
   multiplied by the scale [code].
@@ -384,7 +400,8 @@ bind is set. The designer draws a bind with its sample value when it has one, el
   that opens collapsed shows its title bar alone.
 - **Geometry** (`x`, `y`; GUI scale *s*, results below 0 clamped to 0): `x = -1` centres
   (screenW / 2 − s·w / 2), `-2` puts the corner at the mouse (mouseX), `-3` centres on the mouse (mouseX − s·w / 2);
-  `y` likewise, with screenH − mouseY as the mouse. The designer has no mouse and takes the canvas centre, so `-3`
+  `y` likewise, with screenH − mouseY as the mouse. The result is not rounded: a centred window of odd size starts on
+  a half pixel [compared]. The designer has no mouse and takes the canvas centre, so `-3`
   draws as `-1` and `-2` puts the corner in the middle.
 - **`size_constraint`** goes to `SetWindowSizeConstraints(x, y, w, h)`; **`edge_constraint`** to
   `SetWindowEdgeConstraints` reordered as (x, w, y, h), meaning left, right, top, bottom. The designer keeps both but
@@ -415,9 +432,27 @@ bind is set. The designer draws a bind with its sample value when it has one, el
 - **Placement** [docs]: `NuiImage(resref, aspect, halign, valign)` with aspect FIT, FILL, FIT100, EXACT, EXACTSCALED or
   STRETCH. `NuiImageRegion` and `NuiDrawListImageRegion` draw a sub-rectangle. Transparency comes from the image's own
   alpha.
+- **Drawing** [compared]: the GPU samples a NUI image bilinearly with no mipmaps, so a shrunk image is not smoothed. A
+  picture that lands on a half pixel goes up and left. A button's image is inset 6 px, Nuklear's padding 2 plus
+  rounding 4: a 40 px button shows a 28 px image.
+- **Nine-slice middles** [compared]: a middle larger than its rect is not shrunk. It is drawn at its own size and cut
+  at the rect's end: a 268 px window shows the first 262 px of `nui_windowh`'s 506 px middle, then its right edge.
+- **Missing images** [compared]: an empty resref draws `gui_notfound`, placed like the image. A resref no layer has
+  draws `gui_error` at its own size, centred, each side shrunk only to fit the box, its shape not kept: a 132 px box
+  shows it 36 x 36, a 40 x 30 one 36 x 30.
 - **`SetTextureOverride`** [code]: adds resource overrides for tga, dds, ktx, plt, bmp, mtr and txi only (not png,
   jpg, gif or wbm), and refreshes 3D textures. It does not clear the NUI image caches, so it is not a reliable way to
   change a NUI image.
+
+## Draw lists
+
+[compared]:
+
+- **A 1 px outline** (`NuiDrawListRect`, not filled) is Nuklear's anti-aliased line centred on the rect's edge: the edge
+  pixels and the pixels just outside them show the colour at half strength, never past the widget's own rect.
+- **A thicker outline** is centred on the edge too: a 2 px one covers the pixel on each side of it.
+- **An image's rect** is taken at whole pixels: a portrait at y 3.875 starts on row 3.
+- **A disabled element's** draw list is drawn at half brightness, still opaque: 92,86,71 shows as 46,43,35.
 
 ## What scripts can set
 
@@ -436,6 +471,8 @@ From `nw_inc_nui.nss` and `nwscript.nss` [docs], and the client's JSON keys [cod
   Every parameter can be bound; bind arrays draw one copy per entry. `ORDER_BEFORE` paints under the widget,
   `ORDER_AFTER` over it. Render conditions: always, not hovered, hovered, or while the left, right or middle button is
   held. With `scissor` off, drawing can spill outside the element's box [docs].
+- **Binds never set** read as null [compared]: `visible` or `enabled` bound to one hides or disables the element, a
+  draw-list item's `enabled` skips the item, and a draw-list `color` draws nothing.
 - **Events**: the client's strings name click, mousedown, mouseup, mousescroll, blur, watch, unknown-bind and open.
   No hover event is documented or found in the client [code: strings; very likely, not proven].
 

@@ -346,6 +346,27 @@ function buildSolver(roots: NuiElement[], path: string): Built {
   return { solver: lay.solver, gw, gh, nodes };
 }
 
+/**
+ * The client places a span's children one after another at whole-pixel sizes: each size is cut to a whole pixel and
+ * the next child starts where the last one ended (docs/CLIENT-BEHAVIOUR.md#layout: a row of widths 302.6, 176.9 and 64.5 puts its
+ * third child at 478).
+ */
+function wholePixels(n: LayoutNode): void {
+  if (!SPANS.has(n.type)) return;
+  const horizontal = n.type === "row";
+  const [nx, ny] = n.rect;
+  let cursor = (horizontal ? nx : ny) + n.padding;
+  for (const q of n.children) {
+    const [, , qw, qh] = q.rect;
+    const w = Math.trunc(qw);
+    const h = Math.trunc(qh);
+    cursor += q.margin;
+    q.rect = horizontal ? [cursor, ny + n.padding + q.margin, w, h] : [nx + n.padding + q.margin, cursor, w, h];
+    cursor += (horizontal ? w : h) + q.margin;
+    wholePixels(q);
+  }
+}
+
 /** A copy of n and its children with their rects as the solver's variables hold them now. */
 function snapshot(n: LayoutNode): LayoutNode {
   const c = Object.create(LayoutNode.prototype) as LayoutNode;
@@ -365,6 +386,7 @@ function solveBuilt(built: Built, width: number, height: number, keep: boolean):
     const c = snapshot(top);
     // A top-level span places its children in the group's room, not in a rect of its own: that is its rect.
     if (SPANS.has(top.type) || SELECT_LISTS.has(top.type)) c.rect = [0, 0, built.gw.value(), built.gh.value()];
+    wholePixels(c);
     return c;
   });
   return new Solved(nodes, width, height);
