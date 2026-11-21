@@ -406,16 +406,33 @@ export function halve(im: RGBAImage): RGBAImage {
   return out;
 }
 
+/** How many mip levels a BioWare DDS holds (from its body's length); 1 when it can't tell. */
+export function biowareLevels(b: Uint8Array): number {
+  const h = readBiowareHeader(b);
+  if (!h) return 1;
+  const bs = h.bpp === 4 ? 16 : 8;
+  let left = b.length - BIOWARE_DDS_HEADER;
+  let n = 0;
+  for (const [w, hh] of mipLevels(h.width, h.height)) {
+    const size = blockCount(w, hh) * bs;
+    if (size > left) break;
+    left -= size;
+    n++;
+  }
+  return Math.max(1, n);
+}
+
 /**
  * A BioWare DDS of a picture (rows top to bottom, as it is shown): DXT1 (bpp 3, opaque) or DXT5 (bpp 4), every mip
  * level, each level stored bottom row first. weights: how much each texel of the first level counts (display order,
- * default 1), so a flat face can stay exact where its block also holds a frame's edge and rule.
+ * default 1), so a flat face can stay exact where its block also holds a frame's edge and rule. maxLevels: at most this
+ * many levels (a stock file's own count).
  */
-export function encodeBiowareDds(im: RGBAImage, bpp: 3 | 4, weights?: ArrayLike<number>): Uint8Array {
+export function encodeBiowareDds(im: RGBAImage, bpp: 3 | 4, weights?: ArrayLike<number>, maxLevels = Infinity): Uint8Array {
   const dxt5 = bpp === 4;
   const bs = dxt5 ? 16 : 8;
   const levels: RGBAImage[] = [im];
-  while (levels.at(-1)!.width > 1 || levels.at(-1)!.height > 1) levels.push(halve(levels.at(-1)!));
+  while ((levels.at(-1)!.width > 1 || levels.at(-1)!.height > 1) && levels.length < maxLevels) levels.push(halve(levels.at(-1)!));
   const parts: Uint8Array[] = [];
   for (const lv of levels) {
     const { width: lw, height: lh } = lv;

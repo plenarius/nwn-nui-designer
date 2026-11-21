@@ -1,6 +1,6 @@
 /**
  * "Export full theme": one step from a NUI skin to everything a server ships, the NUI skin and the original
- * (MDL-panel) GUI retoned to match it (reskin.ts), as
+ * (MDL-panel) GUI redrawn to match it (reskin.ts), as
  *
  * - output A, under the stock names: drop the folder in override/ or a hak and every window has the look;
  * - output B (opt-in), the same files under a short prefix (`bzg_boxes`, `bzn_skin`), with a manifest a server uses to
@@ -19,6 +19,11 @@ import { type AlphaMode, alphaModeOf, lum } from "./colour.js";
 import type { OutputFormat } from "./compress.js";
 import { hex, paletteFromStyle, parseHex } from "./palette.js";
 import { type Manifest, type ReskinResult, TEXTURE_EXTS, reportMarkdown, reskin } from "./reskin.js";
+import { lightFills } from "../oldgui/checks.js";
+import { collectOldGui } from "../oldgui/collect.js";
+import { buildInventory } from "../oldgui/inventory.js";
+import { type ChecksResult, runOldGuiChecks, themeInput } from "../oldgui/runchecks.js";
+import { type OldGuiFonts, oldGuiFonts } from "./oldguifonts.js";
 import { AUTO, type ManualClass } from "./textures.js";
 
 // --- a light skin ---------------------------------------------------------------------------------------------------
@@ -146,6 +151,9 @@ export interface ThemeOptions {
   previews?: boolean;
   /** Output B: the same files under this prefix (1 or 2 letters and digits: "bz"). */
   prefix?: string;
+  /** Also the skin's text font as the old GUI's three fonts (fnt_maintext, fnt_default, fnt_default_hr), in output A
+   * only (the client loads fonts once: no per-player switch). Refused when its licence does not allow shipping it. */
+  oldGuiFonts?: boolean;
   progress?(done: number, total: number, name: string): void | Promise<void>;
 }
 
@@ -167,6 +175,11 @@ export interface ThemeResult {
   stock: Record<string, Uint8Array>;
   /** Output B. */
   prefixed: { prefix: string; files: Record<string, Uint8Array>; manifest: PrefixManifest } | null;
+  /** With oldGuiFonts: the skin's font the old GUI's three fonts are copies of. */
+  fonts: OldGuiFonts | null;
+  /** The original-GUI checks (pnpm old-gui check) on output A, with an inventory of the models and layouts read (not
+   * the client's own names: pnpm old-gui inventory adds those). */
+  checks: ChecksResult;
   /** The NUI skin's part of output A (what the skin export would hold). */
   skinItems: ExportItem[];
   reskin: ReskinResult;
@@ -186,20 +199,24 @@ const dec = new TextDecoder();
 
 /**
  * The skin's licence note, for a theme: the skin export's note says nothing in it is Beamdog's, which a theme's
- * retoned original-GUI textures are. Says so, and lists them.
+ * redrawn original-GUI textures are. Says so, and lists them.
  */
-function themeNote(note: Uint8Array, gui: string[]): Uint8Array {
+function themeNote(note: Uint8Array, gui: string[], fonts: OldGuiFonts | null = null): Uint8Array {
   const text = dec
     .decode(note)
     .replace("nothing in this export is Beamdog's.", "nothing in the NUI skin is Beamdog's.")
     .trimEnd();
   return enc.encode(
     `${text}\n\n` +
-      "The original GUI's textures below are NOT the skin author's: nwn-nui-designer retoned them from the exporting\n" +
-      "user's own copy of Beamdog's game files (same names, sizes and layout, new colours). They are derived from\n" +
+      "The original GUI's textures below are NOT the skin author's: nwn-nui-designer redrew them from the exporting\n" +
+      "user's own copy of Beamdog's game files (same names, sizes and layout, drawn again in the skin's colours, their\n" +
+      "pictures and icons kept). They are derived from\n" +
       "Beamdog's art: ship them in a module's haks for players of the game, never in a public repository.\n" +
       gui.map((f) => `  ${f}`).join("\n") +
-      "\n",
+      "\n" +
+      (fonts
+        ? `\nThe original GUI's fonts ${Object.keys(fonts.files).join(", ")} are copies of the skin's ${fonts.source}.ttf, under its terms\n(${fonts.why}).\n`
+        : ""),
   );
 }
 
@@ -212,7 +229,7 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
   }
   const resman = new ResMan();
   resman.layers = o.resman.layers.filter((l) => l.kind !== "memory");
-  if (!hasGame(resman)) throw new ThemeError("no game: the original GUI is retoned from your own install's textures. Load the game folder (NWN_ROOT, nui-designer.ini's game, or Game and haks in the editor) and try again.");
+  if (!hasGame(resman)) throw new ThemeError("no game: the original GUI is redrawn from your own install's textures. Load the game folder (NWN_ROOT, nui-designer.ini's game, or Game and haks in the editor) and try again.");
   const title = p.origin.kind === "builtin" ? p.origin.label.replace(/ \((a built-in open skin|preset [^)]*)\)$/, "") : p.name;
 
   // the NUI skin, as the skin export holds it
@@ -228,9 +245,20 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
     prefix = normalisePrefix(o.prefix)!;
   }
 
+  let fonts: OldGuiFonts | null = null;
+  if (o.oldGuiFonts) {
+    try {
+      fonts = oldGuiFonts(p);
+    } catch (e) {
+      throw new ThemeError(`old GUI fonts: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   const palette = paletteFromStyle(p.style);
   const alpha = o.alpha ?? alphaModeOf(palette);
+  const collection = await collectOldGui(resman);
   const res = await reskin(resman, {
+    uv: collection.uv,
     palette,
     skin: { id: p.name, title, from: p.origin.label },
     alpha,
@@ -242,8 +270,8 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
 
   const guiFiles = (rename: (n: string) => string) => Object.keys(res.files).filter((n) => !n.endsWith(".txi")).map(rename).sort();
   const stock: Record<string, Uint8Array> = {};
-  for (const i of skinItems) stock[itemFile(i)] = i.licence === "note" ? themeNote(i.data, guiFiles((n) => n)) : i.data;
-  for (const [n, d] of Object.entries(res.files)) {
+  for (const i of skinItems) stock[itemFile(i)] = i.licence === "note" ? themeNote(i.data, guiFiles((n) => n), fonts) : i.data;
+  for (const [n, d] of Object.entries({ ...res.files, ...fonts?.files })) {
     if (n in stock) throw new ThemeError(`${n}: both the NUI skin and the original GUI have it`);
     stock[n] = d;
   }
@@ -283,7 +311,9 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
   }
 
   const light = lightCheck(p.style);
-  const result: ThemeResult = { title, stock, prefixed, skinItems, reskin: res, light, report: "" };
+  const inv = buildInventory(collection);
+  const checks = runOldGuiChecks(inv.rows, inv.cells, themeInput(Object.entries(stock), res.manifest), { ink: palette.ink, allowed: lightFills(palette) });
+  const result: ThemeResult = { title, stock, prefixed, fonts, checks, skinItems, reskin: res, light, report: "" };
   result.report = themeReport(result, plan.leftOut);
   return result;
 }
@@ -315,13 +345,18 @@ export function themeReport(r: ThemeResult, leftOut: { name: string; reason: str
     "## What is in it",
     "",
     `- **NUI skin**: nui_skin.tml, ${skinTex} textures, ${fonts} fonts and their licence texts (${r.skinItems.length} files).`,
-    `- **Original GUI**: ${m.textures.length} textures retoned to the skin (${[...groups].map(([g, n]) => `${n} ${g}`).join(", ")}), with ${txi} stock .txi files. Alpha: ${m.alpha}. Formats below.`,
+    `- **Original GUI**: ${m.textures.length} textures redrawn in the skin's colours (${[...groups].map(([g, n]) => `${n} ${g}`).join(", ")}), with ${txi} stock .txi files. Alpha: ${m.alpha}. Formats below.`,
     `- **Output A**, \`stock/\`: ${Object.keys(r.stock).length} files under the stock names. Put them in a hak (or a player's override folder) and every window has the look, character select and the creation wizard included.`,
   );
   if (r.prefixed) {
     const pm = r.prefixed.manifest;
     out.push(
       `- **Output B**, \`prefixed/\`: the same ${Object.keys(r.prefixed.files).length} files under the prefix \`${pm.prefix}\`, and \`prefixed.json\`: the skin is \`${pm.skin.resref}\`, ${Object.keys(pm.textures).length} original-GUI textures to switch with SetTextureOverride. Per-player overrides reach a player only in the module, never character select or the creation wizard.`,
+    );
+  }
+  if (r.fonts) {
+    out.push(
+      `- **Old GUI fonts**: ${Object.keys(r.fonts.files).join(", ")}, copies of the skin's \`${r.fonts.source}.ttf\` (${r.fonts.why}), in output A only: the client loads its fonts once, so every player gets them whatever theme they choose.`,
     );
   }
   out.push("");
@@ -342,8 +377,13 @@ export function themeReport(r: ThemeResult, leftOut: { name: string; reason: str
   if (leftOut.length) {
     out.push("NUI skin: names it uses but does not hold (the players' own copies are used):", "", ...leftOut.map((l) => `- \`${l.name}\`: ${l.reason}`), "");
   }
+  out.push("## Original GUI checks", "", "`pnpm old-gui check` on `stock/`, with an inventory of the models and layouts read (`pnpm old-gui inventory` also reads the client's own names):", "");
+  for (const [k, v] of Object.entries(r.checks.counts)) out.push(`- ${k}: ${v.checked} checked, ${v.failed} failed`);
+  const fails = r.checks.findings.filter((f) => f.fail);
+  if (fails.length) out.push("", ...fails.slice(0, 40).map((f) => `- **${f.check}**: \`${f.texture}\`: ${f.message}`), ...(fails.length > 40 ? [`- and ${fails.length - 40} more`] : []));
+  out.push("", r.checks.failures ? `**${r.checks.failures} failures.**` : "All pass.", "");
   out.push("## Checks", "");
-  if (!bad.length && !m.skipped.length) out.push(`Every one of the ${m.textures.length} retoned textures passed its checks (size, alpha, layout, orientation, rules and dividers kept).`, "");
+  if (!bad.length && !m.skipped.length) out.push(`Every one of the ${m.textures.length} original-GUI textures passed its checks (size, alpha, layout, orientation, rules and dividers kept).`, "");
   if (bad.length) out.push(`**${bad.length} texture(s) failed a check**: look at them (contact sheets) before shipping, redraw them by hand or leave them out.`, "", ...bad.map((t) => `- \`${t.name}\`: ${t.validation.problems.join("; ")}`), "");
   if (m.skipped.length) out.push(`${m.skipped.length} texture(s) skipped:`, "", ...m.skipped.map((s) => `- \`${s.name}\`: ${s.why}`), "");
   // the reskin's own report, a level down: formats, and each texture left to a person by name

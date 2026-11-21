@@ -1,6 +1,6 @@
 /**
  * Exporting a skin: a hak (or an ERF) a module lists, a zip of loose files for the override or development folder,
- * nui_skin.tml alone, the skin project, or the full theme (the skin and the original GUI retoned to match: ThemeExport). Shows exactly what goes in (only the user's own and generated files, the
+ * nui_skin.tml alone, the skin project, or the full theme (the skin and the original GUI redrawn to match: ThemeExport). Shows exactly what goes in (only the user's own and generated files, the
  * .tml and a licence note), what is left out and why (the game's own textures and fonts are never bundled), and the
  * licence note.
  */

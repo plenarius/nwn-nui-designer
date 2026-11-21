@@ -379,7 +379,7 @@ your changes to NAME?"). Save it as a project (Export skin, Project) to keep it.
 - **Export skin** (Ctrl+E): a `.hak` or `.erf`, a zip of loose files for `override/` or `development/`, the `.tml`
   alone, or the skin project. The dialog lists what goes in and what is left out. Only your own files go in (your
   uploads, generated textures, the `.tml`) with a licence note. **The game's textures and fonts are never put in an
-  export**: players already have them. **Full theme** adds the original GUI retoned to match, from your own game
+  export**: players already have them. **Full theme** adds the original GUI redrawn to match, from your own game
   ([Export a full theme](#export-a-full-theme-the-original-gui-too)).
 
 ## The built-in skins
@@ -523,22 +523,25 @@ enough.
 NWN_ROOT=/path/to/game pnpm export-theme bronze -o ~/themes/bronze --out-hak bronze_theme
 # also a prefixed copy (bzg_boxes, bzn_skin, ...) for a server that lets each player choose:
 NWN_ROOT=/path/to/game pnpm export-theme bronze -o ~/themes/bronze --out-hak bronze_theme --prefix bz --prefix-hak bronze_theme_p
+# the skin's font for the original GUI too (fnt_maintext, fnt_default, fnt_default_hr; an OFL font):
+NWN_ROOT=/path/to/game pnpm export-theme bronze -o ~/themes/bronze --out-hak bronze_theme --old-gui-fonts
 ```
 
-Or in the skin editor: **Export skin** (Ctrl+E) → **Full theme** → **Build the theme**, then download the zip.
+Or in the skin editor: **Export skin** (Ctrl+E) → **Full theme** → **Build the theme**, then download the zip. The
+summary ends with the original-GUI checks on what it built.
 
 - **Output A**, `stock/` (and `--out-hak`): everything under the stock names. Put it in a hak (or an override
-  folder) and every window has the look. Ink and brass with the game alone: 332 files.
+  folder) and every window has the look. Ink and brass with the game alone: 332 files, an 11.9 MB hak.
 - **Output B**, `prefixed/` (with `--prefix`): the same files under a one- or two-character prefix, and
   `prefixed.json`, the map a server uses to switch one player (`SetTextureOverride` per texture, and a ResMan
   override of `nui_skin` for the skin).
 - **`report.md`**: what was themed, what stays stock and why (icons, cursors, pictures, bitmap fonts: they need an
-  artist), failed checks, and a **warning for a light skin**: the original GUI draws its text light whatever its
+  artist), the original-GUI checks, failed checks, and a **warning for a light skin**: the original GUI draws its text light whatever its
   textures, so on light panels (Verdigris and paper's) it is hard to read.
 
 The export needs your own game files and stops with a message without them. Its output is derived from the game's
 art: ship it in your module's haks, never in a public repository. The whole guide, per-player themes and how the
-retone works: [docs/RESKIN-EVERYTHING.md](docs/RESKIN-EVERYTHING.md). (`pnpm reskin` writes the original GUI alone.)
+redraw works: [docs/RESKIN-EVERYTHING.md](docs/RESKIN-EVERYTHING.md). (`pnpm reskin` writes the original GUI alone.)
 
 `pnpm old-gui inventory` lists every texture the original GUI can draw in your game and haks, with its role, and
 `pnpm old-gui check` holds a theme to it: every drawn chrome texture redrawn (not recoloured), flat faces, every bar

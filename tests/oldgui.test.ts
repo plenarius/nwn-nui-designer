@@ -295,6 +295,17 @@ describe("checks", () => {
 });
 
 
+describe("fonts", () => {
+  it("the old GUI's three fonts: all or none, and one font", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([1, 2, 4]);
+    expect(checkFonts(new Map())).toEqual([]);
+    expect(checkFonts(new Map([["fnt_maintext", a], ["fnt_default", a], ["fnt_default_hr", a]]))).toEqual([]);
+    expect(checkFonts(new Map([["fnt_maintext", a]])).map((f) => f.texture)).toEqual(["fnt_default", "fnt_default_hr"]);
+    expect(checkFonts(new Map([["fnt_maintext", a], ["fnt_default", b], ["fnt_default_hr", a]])).map((f) => f.texture)).toEqual(["fnt_default"]);
+  });
+});
+
 describe("with the game", () => {
   const game = findGame();
   it.skipIf(!game || !isGameDir(game))(`reads every GUI model and gives every drawn texture a role (${game ?? "no game"})`, async () => {

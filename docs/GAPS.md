@@ -85,9 +85,11 @@ Still open, in the order they are planned:
 - **Lines dropped with shared stretched cells**: the Character Record's ability grid and page lines, and the server
   list's row separators, share texels with cells big panels stretch, so the redraw drops them (as the reference
   redraw does).
-- **Fonts.** Exporting the skin's font as `fnt_maintext`, `fnt_default` and `fnt_default_hr` (an option). The check
-  of a partial set is in.
-- **The editor.** The inventory and the checks are command-line only.
+- **The editor runs the export and its checks, not the previews.** `pnpm old-gui inventory`, `previews` and the frame
+  check are command-line only (they read the game executable and draw about 150 screens).
+- **Hak size.** 16 textures stay TGA with `--format auto` (4 MB of the 11.9 MB hak) because DXT would move a flat face
+  by 5 to 11 levels where a 4 x 4 block holds a frame's edge, rule and face. A better block fit (or frames placed on
+  block edges) would let them be DDS.
 - **Roles of new textures.** The role tables are the stock 8193.37 client's; a newer client's textures show as
   uncategorised until someone looks at them.
 

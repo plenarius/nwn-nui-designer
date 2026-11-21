@@ -1,5 +1,5 @@
 /**
- * pnpm reskin: the original (MDL-panel) GUI's textures retoned to match a designer skin, so one theme covers the NUI
+ * pnpm reskin: the original (MDL-panel) GUI's textures redrawn to match a designer skin, so one theme covers the NUI
  * windows and the old ones. docs/RESKIN-EVERYTHING.md is the playbook.
  *
  *   pnpm reskin SKIN -o DIR [--out-hak NAME] [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks]

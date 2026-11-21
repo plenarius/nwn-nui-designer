@@ -8,8 +8,8 @@ A theme is complete only when it restyles **both** GUIs the game draws:
   character-creation wizard.
 
 Never mix and match: a NUI skin over the stock original GUI (or the reverse) is half a theme. **One step exports the
-whole theme**: `pnpm export-theme` (or **Export skin → Full theme** in the skin editor) takes a NUI skin, retones the
-original GUI's textures from your own game to match it, checks them, and writes both together, ready for a hak. A
+whole theme**: `pnpm export-theme` (or **Export skin → Full theme** in the skin editor) takes a NUI skin, redraws the
+original GUI's chrome from your own game in its colours, checks it, and writes both together, ready for a hak. A
 person or an agent can follow this guide from start to finish without asking anything.
 
 Contents: [Prerequisites](#prerequisites) · [Export the full theme](#export-the-full-theme) ·
@@ -23,13 +23,15 @@ Contents: [Prerequisites](#prerequisites) · [Export the full theme](#export-the
 
 > **Status.** The export **redraws** the original GUI's chrome from the skin's own colours (flat faces, one rule,
 > the pressed fill and the hover glow, every state in the cell its model reads), and `pnpm old-gui check` passes on
-> it: every one of the 148 chrome textures is redrawn and every face is flat. Previews of the real layouts and a
-> frame-continuity check are next ([GAPS.md](GAPS.md#the-original-gui)).
+> it: every one of the 148 chrome textures is redrawn and every face is flat. `pnpm old-gui previews` draws every
+> screen stock beside the theme and checks its frames; `--old-gui-fonts` gives the old windows the skin's font. What
+> is still open: [GAPS.md](GAPS.md#the-original-gui).
 
 ## The rule: no game art in a repository
 
 The export reads the stock original GUI from **your own install** and writes everything it makes to a folder you
-choose (or a zip you download). The retoned textures are derived from Beamdog's art: share them with your players in
+choose (or a zip you download). The redrawn textures are derived from Beamdog's art (their layout, and the pictures
+and icons they keep): share them with your players in
 your module's haks, but never commit them to a public repository, and never put them, or screenshots of the original
 GUI, in this one. The command line refuses an output folder inside this repository (except the ignored `local/`).
 The NUI skin's own files (the built-in skins' textures and `.tml`, CC0; their fonts, OFL) are not derived from the
@@ -79,16 +81,21 @@ pnpm export-theme ~/skins/mytheme.nuiskin.json -o ~/themes/mytheme --out-hak myt
 | `--alpha keep\|opaque` | override the alpha rule (default: from the skin's window body; [Alpha](#how-the-two-guis-are-made-to-match)) |
 | `--format auto\|dds\|tga` | what a texture that is a TGA in the game is written as (default `auto`; [Format and size](#format-and-size)) |
 | `--no-sheet` | no contact sheets |
+| `--old-gui-fonts` | also the skin's text font as the original GUI's three fonts, in `stock/` ([Fonts](#the-original-guis-fonts)) |
 
-The exit code is 0 when every texture passed its checks, 1 when one failed (`report.md` says which), and 2 for a
-usage error: no game, a bad prefix, an unknown skin. A whole theme takes about a minute (most of it DDS
-compression), about 80 seconds on a slow core.
+After writing, the export runs the original-GUI checks on `stock/` ([The original GUI's inventory and
+checks](#the-original-guis-inventory-and-checks)) and puts them in `report.md`. The exit code is 0 when every texture
+passed its own checks and the original-GUI checks pass, 1 when one failed (`report.md` says which), and 2 for a usage
+error: no game, a bad prefix, an unknown skin, a font whose licence does not allow shipping it. A whole theme takes
+about two minutes on a slow core (most of it DDS compression).
 
 In the editor: **Skin** → open the skin → **Export skin** (Ctrl+E) → **Full theme**. The tab says why it can't run
 (no game loaded, no generator style) and shows the light-skin warning before you build. **Build the theme** shows its
 progress, then a summary and **Download NAME-theme.zip**: the same files as the command line (output A and its hak
 named after the skin; with **Also under a prefix**, output B, its hak `NAME_p` and `prefixed.json`), without the
-contact sheets. "Read the stock textures through the module's haks too" is `--no-haks` when unticked.
+contact sheets. "Read the stock textures through the module's haks too" is `--no-haks` when unticked; "The skin's
+font for the original GUI too" is `--old-gui-fonts` (greyed out, with the reason, when the font's licence doesn't
+allow shipping it). The summary ends with the original-GUI checks.
 
 ## What it writes
 
@@ -99,12 +106,12 @@ contact sheets. "Read the stock textures through the module's haks too" is `--no
 | `prefixed/` | **output B** (`--prefix`): the same files under the prefix |
 | `prefixed.json` | output B's map: each stock texture to its prefixed name, and the skin's resref |
 | `NAME.hak` | output B as a hak (`--prefix-hak`) |
-| `report.md` | what was themed, what is left stock and why, failed checks, and the light-skin warning ([The report](#the-report)) |
+| `report.md` | what was themed, what is left stock and why, the original-GUI checks, failed checks, and the light-skin warning ([The report](#the-report)) |
 | `reskin-manifest.json` | per original-GUI texture: where the stock one was read (game, hak, folder), its stock format and the format written, size, bytes, recoloured or redrawn, the compression error, the checks |
 | `contact-*.png` | stock and new side by side, one sheet per group (command line only) |
 
 Ink and brass, for scale, with the game alone: `stock/` holds 332 files (the NUI skin's 39; 161 original-GUI
-textures, 145 DDS and 16 TGA, and their `.txi`).
+textures, 145 DDS and 16 TGA, and their `.txi`), and its hak is 11.9 MB.
 
 ## Output A: one theme for everyone
 
@@ -163,6 +170,8 @@ whatever your module reads):
 - **Left stock**: the textures the client uses that no export changes, by kind, with why: icons, pictures, baked
   text, cursors, bitmap fonts and content need an artist (or stay as they are); the original GUI's text colours,
   fonts and layout are not textures at all ([What is left to a person](#what-is-left-to-a-person));
+- **Original GUI checks**: `pnpm old-gui check` on `stock/`, with an inventory of the models and layouts the export
+  read (the client's own names, which `pnpm old-gui inventory` also reads, are left out: run that for the full set);
 - **Checks**: every failed check and every skipped texture, by name;
 - the original GUI in detail: formats and sizes, each texture's compression error, and every texture left to a person
   by name.
@@ -357,15 +366,20 @@ code uses to one of three TrueType files:
 | `fnt_default_hr` | dialog and floating text with the large-font option, at about 16 px |
 
 So a theme can give the old windows the NUI skin's font by shipping that font three times, under those three names,
-in a hak (the game's own `.txi` for each name, contrast and outline only, still applies). Replace all three or none:
-the check fails on a partial set. `fnt_maintext` is also the font of a NUI skin entry that names no resref of its
+in a hak (the game's own `.txi` for each name, contrast and outline only, still applies). `export-theme
+--old-gui-fonts` (in the editor: "The skin's font for the original GUI too") does it: it copies the skin's text font
+(its `(default)` `[[fonts]]` entry) to `stock/fnt_maintext.ttf`, `fnt_default.ttf` and `fnt_default_hr.ttf`, and the
+licence note says they are copies. Replace all three or none, with one font: the check fails on a partial set and on
+three that are not the same file. `fnt_maintext` is also the font of a NUI skin entry that names no resref of its
 own, so replacing it changes those NUI windows too.
 
-- **Licence.** Ship only a font whose licence allows it (the built-in skins' fonts are SIL OFL 1.1: ship the licence
-  text beside them), never one of the game's.
+- **Licence.** Ship only a font whose licence allows it, never one of the game's. The option takes the built-in
+  skins' fonts (SIL OFL 1.1: their licence text goes in the export beside them) and a font of yours whose own name
+  table says SIL Open Font License, Apache License, Ubuntu Font Licence or public domain and whose OS/2 table doesn't
+  restrict embedding; it refuses anything else, saying why.
 - **Coverage.** A font with Latin-1 only can't draw the rest of a player's code page.
 - **For everyone, not per player.** The client loads its fonts once, so a per-player theme can't switch them:
-  every player on the server gets the hak's fonts, whichever theme they chose.
+  every player on the server gets the hak's fonts, whichever theme they chose. The option puts them in output A only.
 - **Testing on your machine.** Put the three files in the game's user `development/` folder. A player's
   `override/` folder does **not** beat the haks a server sends through NWSync; `development/` does.
 
@@ -406,20 +420,20 @@ own, so replacing it changes those NUI windows too.
 
 ## Appendix: how it works
 
-The full-theme export is the NUI skin's own export (what **Export skin → .hak** holds) plus `pnpm reskin`'s retoned
-original GUI, in one package (`src/core/reskin/theme.ts`). The rest of this guide is how the original GUI is retoned,
-and what to know to retone or redraw a texture by hand.
+The full-theme export is the NUI skin's own export (what **Export skin → .hak** holds) plus `pnpm reskin`'s redrawn
+original GUI, in one package (`src/core/reskin/theme.ts`). The rest of this guide is how the original GUI is redrawn,
+and what to know to redraw a texture by hand.
 
 ### How the skin's colours map
 
 | The skin's | becomes, in the original GUI |
 |---|---|
-| window body (`fixed_background`, `nui_windowh`) | the panel fill (the stock black and translucent grey) |
-| title body (`nuio_title`), button body | the raised greys: title bars, button fields |
-| active body (pressed / selected) | the stock blue-cloud "down" frames, selection cells |
-| accent (`border_color`) | the gold rules and frames |
-| glow (hover) | the bright gold hover frames, thin light rules |
-| mark (ticks) | check marks, the yellow marker cell |
+| window body (`fixed_background`, `nui_windowh`) | the panel fill, the tab ink, the tracks (darker) and the frames' outer edge (darker still) |
+| button body | every button face and list row |
+| active body (pressed / selected) | the pressed and selected face, the selected list row and item cell |
+| accent (`border_color`) | the one rule of every frame, the scroll thumb and slider knob, the bars' fill |
+| glow (hover) | the hover rule inside a hovered button, a hovered row's rule |
+| mark (ticks) | check marks, the X, arrows and the glyphs on buttons |
 | window body opacity | whether the old translucent panels become opaque (see Alpha) |
 
 ### `pnpm reskin`: the original GUI alone
@@ -491,12 +505,12 @@ luminance following the stock one mapped, every rule still visible).
 
 ### What is left to a person
 
-`report.md` lists these (about 100 names) with whether your install has each. Decide per texture: keep it, recolour
+`report.md` lists these (82 names) with whether your install has each. Decide per texture: keep it, recolour
 it by hand, or draw new art.
 
 | Class | Examples | Why not automatic |
 |---|---|---|
-| Icons | radial menu atlas, journal and inventory button icons, party-bar icons, compass, stat icons, slot silhouettes | Painted pictures. A gold-to-accent recolour may suit some; anything more is new art. |
+| Icons | stat icons, slot silhouettes, the compass, party states, the radial's icons (the radial's discs and the icon atlases' frames and grounds are redrawn) | Painted pictures. A gold-to-accent recolour may suit some; anything more is new art. |
 | Pictures | `gui_banner` (the weapons banner on every creation page) | A picture, not chrome. |
 | Baked text | `gui_pre_logo`, `load_legal`, `load_legal2` | Text and a logo painted into the image. |
 | Cursors | `gui_mp_*` (30) | Optional for a theme. |
@@ -510,8 +524,8 @@ them, for everyone), selection tints and the radial's dimming, portraits and ite
 
 To redraw one by hand: work from the stock file (`nwn_resman_cat` or the designer's resources), keep the **name**,
 the **size**, the **format family** (TGA or DDS, and DXT1 or DXT5), the **alpha layout** and the **.txi**, keep
-every state frame at its place, and put the file in `DIR/textures/` before building the hak. Run the checks again by
-comparing it with the stock file in the contact sheet.
+every state frame at its place, and put the file in `DIR/textures/` before building the hak. Then run `pnpm old-gui
+check` and `pnpm old-gui previews` on the folder.
 
 ### How the two GUIs are made to match
 
@@ -606,22 +620,24 @@ by side (the character record next to a NUI window of your module).
 - **Hak size.** Most panels are 24-bit TGAs in the game (512 x 512 is 768 KB): written as TGA the original-GUI hak
   is about 27 MB, as DDS about 6 MB ([Format and size](#format-and-size)). Players download it through NWSync, so
   keep the default `--format auto`.
-- **Don't recolour twice.** Reading through a hak that already holds a reskin recolours the reskin. Use `--no-haks`
+- **Read the stock, not a theme.** The redraw finds each texture's rules and frames in the stock art: reading through
+  a hak that already holds a theme redraws that theme instead, and a flat redraw has no bevels left to find. Use `--no-haks`
   (in the editor: untick "Read the stock textures through the module's haks too"). A hak named by `--out-hak` or
   `--prefix-hak` is left out by itself.
 - **Light skins.** The original GUI's text is light whatever the textures say (see [the report](#the-report)).
 
 ### Format and size
 
-67 of the 100 textures are 24- or 32-bit TGAs in the game. `--format` decides what they are written as:
+102 of the 161 textures are 24- or 32-bit TGAs in the game. `--format` decides what they are written as:
 
-| `--format` | A stock TGA is written as | Hak (Ink or Bronze) |
+| `--format` | A stock TGA is written as | Hak (Ink and brass, the game alone) |
 |---|---|---|
-| `auto` (default) | a DDS, unless its compression error is too high (then the TGA) | 6.2 MB (64 DDS, 3 TGA) |
-| `dds` | always a DDS | about 6.2 MB |
-| `tga` | always the TGA | 26.7 MB |
+| `auto` (default) | a DDS, unless its compression error is too high or DXT would move a flat face (then the TGA) | 11.9 MB (145 DDS, 16 TGA) |
+| `dds` | always a DDS | 9.3 MB (a few faces move in DXT: the flatness check fails on one) |
+| `tga` | always the TGA (24-bit when opaque) | 43.3 MB |
 
-A stock DDS stays a DDS whatever the option. The DDS is BioWare's: a 20-byte header (width, height, 3 for DXT1 or 4
+A stock DDS stays a DDS whatever the option, with as many mip levels as the stock file has; a stock TGA whose txi
+says `mipmap 0` is written with its base level only (the client draws that level at every size). The DDS is BioWare's: a 20-byte header (width, height, 3 for DXT1 or 4
 for DXT5, the first level's size, the mean alpha), DXT1 for an opaque picture and DXT5 for one with alpha, every mip
 level down to 1 x 1 as the game's own files have them, rows stored bottom first. The `.txi` stays beside it. The
 encoder (`src/core/reskin/bc.ts`) fits each 4 x 4 block's endpoints on the colours' principal axis, then searches
@@ -633,13 +649,13 @@ edge texels (rules, lines, text: where DXT artefacts show), the worst alpha erro
 texel's alpha, 0-255). It keeps the TGA when the mean is above 4, the edge mean above 12, the alpha error above 16, a
 texel's alpha 0 moved, or a rule against a dark field was flattened. `report.md` lists every texture's numbers.
 
-On the game's textures (Ink and Bronze alike) the panels and buttons come out at a mean of 1-3 and an edge mean of
-4-9, and 3 stay TGA:
+It also keeps the TGA when DXT would move a flat face (a texel whose 3 x 3 neighbourhood is one colour) by more than 4
+levels: a 4 x 4 block that holds a frame's outer edge, its rule and the face can't store all three exactly, and the
+face is what the flatness check reads. The encoder weighs face texels 12 times and tries each pair of a block's own
+colours as its ends, which keeps most faces exact.
 
-| Texture | Why it stays TGA |
-|---|---|
-| `gui_rgbc` | a 4 x 4 swatch of 4 signal colours (red, green, blue, the marker yellow): one DXT block holds 2 (mean error about 110) |
-| `ctl_chk_pre` | a 16 x 16 checkbox of hard 1 px pixel art (mean error 9-10) |
-| `ctl_cg_btn_right` | the creation wizard's 32-bit cut-out arrow: its anti-aliased rim's alpha would move by 17 |
+On Ink and brass, with the game alone, 16 stay TGA (4 MB): 13 button atlases and panels where a face would move 5 to
+11 levels (`ctl_skill`, `ctl_class`, `ctl_opt_btn_key`, `ct_btn_srv_lst`, `ctl_pre_btn_save`, `pnl_party_bar`, ...),
+`ctl_btn_jnl_inv` (its kept icons), `ctl_pre_new1` (its picture's edges) and `gui_rgbc` (4 signal colours in one 4 x 4
+block: one DXT block holds 2).
 
-These three are 9 KB together, so keeping them costs nothing.

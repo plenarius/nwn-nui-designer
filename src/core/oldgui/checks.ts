@@ -10,7 +10,7 @@
  *   fill bars    a bar the client fills was redrawn as a panel, and showed nothing while it filled
  *   flatness     a face with a gradient, noise or a pale fill; a stretched cell that changes along its stretch
  *                (filtering spreads any change over the whole stretch: fades at row ends, soft bands)
- *   fonts        the old GUI's three font files replaced only in part
+ *   fonts        the old GUI's three font files replaced only in part, or not by one font
  */
 import type { RGBAImage } from "../res/image.js";
 import { type Cell, cellRefs, claimed, edgeOnly, halfCover, isStretched, spans, stateControls } from "./cells.js";
@@ -458,6 +458,12 @@ export function checkFonts(fonts: ReadonlyMap<string, Uint8Array>): Finding[] {
   const out: Finding[] = [];
   for (const n of names) {
     if (!fonts.has(n)) out.push({ check: "fonts", texture: n, message: `the theme replaces ${present.join(", ")} but not ${n}: the old GUI would mix two fonts`, fail: true });
+  }
+  // the three are one font: copies of the same file
+  const first = fonts.get(present[0]!)!;
+  const same = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => v === b[i]);
+  for (const n of present.slice(1)) {
+    if (!same(fonts.get(n)!, first)) out.push({ check: "fonts", texture: n, message: `not the same file as ${present[0]}: the old GUI would mix two fonts`, fail: true });
   }
   return out;
 }

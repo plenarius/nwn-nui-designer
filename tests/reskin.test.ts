@@ -188,7 +188,7 @@ describe("reskin", () => {
     const m = res.manifest;
     // every chrome texture is redrawn, never recoloured
     expect(m.textures.map((t) => [t.name, t.action, t.format, t.output])).toEqual([
-      ["ctl_att", "redrawn", "tga 24-bit", "tga 32-bit"],
+      ["ctl_att", "redrawn", "tga 24-bit", "tga 24-bit"],
       ["gui_scrollbar", "redrawn", "dds dxt1", "dds dxt5"],
       ["gui_slider", "redrawn", "dds dxt5", "dds dxt5"],
       ["gui_boxes", "redrawn", "dds dxt5", "dds dxt5"],
