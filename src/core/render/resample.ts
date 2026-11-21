@@ -7,7 +7,8 @@
  */
 import { type RGBAImage, newImage } from "../res/image.js";
 
-export type Filter = "bilinear" | "box";
+/** "gpu": bilinear without Pillow's widening on a shrink, as a GPU samples a texture with no mipmaps. */
+export type Filter = "bilinear" | "box" | "gpu";
 
 const PRECISION_BITS = 32 - 8 - 2;
 
@@ -31,7 +32,7 @@ interface Coeffs {
 function precompute(inSize: number, outSize: number, f: Filter): Coeffs {
   const [fn, support0] = filterFn(f);
   const scale = inSize / outSize;
-  const filterscale = scale < 1 ? 1 : scale;
+  const filterscale = scale < 1 || f === "gpu" ? 1 : scale;
   const support = support0 * filterscale;
   const ksize = Math.ceil(support) * 2 + 1;
   const bounds = new Int32Array(outSize * 2);

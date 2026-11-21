@@ -36,9 +36,11 @@ history). Decisions are in [DESIGN.md](../DESIGN.md); facts about the client in
 - **Glyphs** differ from Pillow's by FreeType's hinting (mean 3.9/255 a pixel) and from the client's stb_truetype by an
   unknown amount.
 - **1 px draw-list lines** on a whole-pixel coordinate are drawn as Nuklear's anti-aliased quad (two rows at half
-  intensity); Pillow draws one aliased row. Which the client shows is unchecked (a 1:1 screenshot would say). The
-  slider bar uses Pillow's 2-wide line approximately.
-- **Disabled widgets** are drawn at 50 % alpha (nui-preview's guess).
+  intensity); Pillow draws one aliased row. A rect's outline is checked in game
+  ([CLIENT-BEHAVIOUR.md](CLIENT-BEHAVIOUR.md#draw-lists)); a line's is not. The slider bar uses Pillow's 2-wide line
+  approximately.
+- **Disabled widgets** are drawn at 50 % alpha (nui-preview's guess). A disabled element's draw list is checked in
+  game: half brightness, opaque.
 - **Window placement**: geometry -2 and -3 place the window at the mouse in the client; the designer takes the canvas
   centre. `size_constraint` and `edge_constraint` are kept but not drawn or checked.
 - **Window keys not traced**: `resizable: null` (the docs say resizable) and a `false` title (no title, per
