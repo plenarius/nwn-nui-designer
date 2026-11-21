@@ -43,7 +43,7 @@ export interface Stock {
 /** The game, haks and folders the stock textures are read through (no memory layer: the fallback skin is not stock). */
 export async function stockResources(o: StockOptions): Promise<Stock> {
   const game = o.game ?? findGame();
-  if (!game) throw new UsageError(`no game (${noGameReason()}). The original GUI is retoned from your own install's textures: set NWN_ROOT, set game in nui-designer.ini, or give --game DIR`);
+  if (!game) throw new UsageError(`no game (${noGameReason()}). The original GUI is redrawn from your own install's textures: set NWN_ROOT, set game in nui-designer.ini, or give --game DIR`);
   if (!isGameDir(game)) throw new UsageError(`${game}: not an NWN:EE install with data (no data/nwn_base.key, or empty BIFs)`);
   let haks = o.haks ?? [];
   let overrides = o.overrides ?? [];

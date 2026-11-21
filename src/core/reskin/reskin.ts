@@ -1,23 +1,29 @@
 /**
- * "Reskin everything": the original (MDL-panel) GUI's textures retoned to a designer skin, so one theme covers the
- * NUI windows and the old ones alike. Reads each stock texture the way the client finds it (the first layer that has
- * the name, a DDS before a TGA within a layer), recolours or redraws it in the same format at the same size, checks
- * the result, compresses a TGA to DDS where that is good enough (--format, compress.ts), and returns the files under
- * the stock names with a manifest. No file is written here (src/node/reskin.ts
- * does that), and no game art is part of this code: it all comes from the user's own install.
+ * "Reskin everything": the original (MDL-panel) GUI's textures redrawn in a designer skin's colours, so one theme
+ * covers the NUI windows and the old ones alike. Reads each stock texture the way the client finds it (the first layer
+ * that has the name, a DDS before a TGA within a layer), redraws its chrome (src/core/oldgui/draw) or recolours a flat
+ * cell or an icon's ground, in the same format at the same size, checks the result, compresses a TGA to DDS where that
+ * is good enough (--format, compress.ts), and returns the files under the stock names with a manifest. No file is
+ * written here (src/node/reskin.ts does that), and no game art is part of this code: it all comes from the user's own
+ * install.
  */
+import { type UvEntry } from "../oldgui/cells.js";
+import { collectOldGui } from "../oldgui/collect.js";
+import { FACE_WEIGHT, faceWeights, oldGuiStyle, recolourIconGround, redrawOldGui, warm565Image } from "../oldgui/draw/index.js";
+import { decodeGuiTexture } from "../oldgui/texture.js";
+import { readTxi } from "../oldgui/txi.js";
 import { writeErf } from "../res/erfwrite.js";
 import type { RGBAImage } from "../res/image.js";
 import type { ResMan } from "../res/resman.js";
 import { decodeTga } from "../res/tga.js";
-import { encodeBiowareDds, readBiowareHeader } from "./bc.js";
-import { type CompressionError, type OutputFormat, compressToDds, keepTgaReason } from "./compress.js";
+import { encodeTga24, encodeTga32 } from "../res/tgawrite.js";
+import { biowareLevels, encodeBiowareDds, readBiowareHeader } from "./bc.js";
+import { type CompressionError, type OutputFormat, compressToDds, hasAlpha, keepTgaReason } from "./compress.js";
 import { type AlphaMode, alphaCurve, frameColour, swatchColour } from "./colour.js";
 import { type ReskinPalette, hex } from "./palette.js";
-import { REDRAWS, type NuiPieces, resize } from "./redraw.js";
 import { mapPicture, retoneDds, retoneTga, tgaInfo } from "./retone.js";
 import { AUTO, type AutoTexture, type Group, MANUAL, type ManualTexture } from "./textures.js";
-import { type Validation, decodeTexture, validateTexture } from "./validate.js";
+import { type Validation, decodeTexture, meanDiff, validateTexture } from "./validate.js";
 
 /** Texture formats in the order the client prefers them within one layer. */
 export const TEXTURE_EXTS = ["ktx", "dds", "tga"] as const;
@@ -82,8 +88,8 @@ export interface ReskinResult {
 
 export interface ReskinOptions {
   palette: ReskinPalette;
-  /** The skin's NUI pieces the scrollbar and slider are drawn from. */
-  nui: NuiPieces;
+  /** Every UV rectangle the old GUI's models sample, by texture (collectOldGui's uv; read from resman when not given). */
+  uv?: Map<string, UvEntry[]>;
   skin: Manifest["skin"];
   alpha: AlphaMode;
   /** What to write a stock TGA as (default auto: DDS unless its error is above AUTO_LIMITS). */
@@ -105,6 +111,57 @@ function formatOf(bytes: Uint8Array, ext: string): string {
   return t ? `tga ${t.bits}-bit` : `tga type ${bytes[2]}`;
 }
 
+/** A redrawn picture in the stock file's format: a DDS stays a DDS (DXT5 once it has alpha) with the stock's number of
+ * mip levels, dark colours snapped to exact 5:6:5 values; a TGA becomes a DDS unless --format tga or auto finds the
+ * DDS too far off (24-bit when opaque, as the stock's). */
+function encodeRedraw(drawn: RGBAImage, stock: Uint8Array, ext: string, fmt: OutputFormat, mipmap = true): { bytes: Uint8Array; ext: string; compression?: ManifestEntry["compression"]; tgaBytes?: number } {
+  const alpha = hasAlpha(drawn);
+  const snapped = warm565Image(drawn);
+  const weights = faceWeights(snapped);
+  if (ext === "dds") {
+    const bpp = alpha ? 4 : (readBiowareHeader(stock)?.bpp ?? 3);
+    // as many mip levels as the stock file has
+    return { bytes: encodeBiowareDds(snapped, bpp === 4 ? 4 : 3, weights, biowareLevels(stock)), ext: "dds" };
+  }
+  const tga = alpha ? encodeTga32(drawn) : encodeTga24(drawn);
+  if (fmt === "tga") return { bytes: tga, ext: "tga" };
+  // a texture whose txi says mipmap 0 is drawn from its base level at every size
+  const c = compressToDds(snapped, weights, mipmap ? Infinity : 1);
+  const shift = faceShift(snapped, c.decoded, weights);
+  const kept = [keepTgaReason(c.error), shift > FACE_SHIFT ? `a flat face moves ${shift} levels` : null].filter(Boolean).join(", ") || null;
+  if (fmt === "dds" || !kept) return { bytes: c.bytes, ext: "dds", compression: c.error, tgaBytes: tga.length };
+  return { bytes: tga, ext: "tga", compression: { ...c.error, kept }, tgaBytes: tga.length };
+}
+
+/** How far DXT may move a redrawn face (0-255, any channel) before auto keeps a stock TGA as TGA. */
+export const FACE_SHIFT = 4;
+
+/** The largest change of a face texel (weighted FACE_WEIGHT) between the drawing and the decoded file. */
+function faceShift(drawn: RGBAImage, decoded: RGBAImage, weights: Float64Array): number {
+  let worst = 0;
+  for (let i = 0; i < weights.length; i++) {
+    if (weights[i] !== FACE_WEIGHT || drawn.data[i * 4 + 3] === 0) continue;
+    for (let k = 0; k < 3; k++) worst = Math.max(worst, Math.abs(drawn.data[i * 4 + k]! - decoded.data[i * 4 + k]!));
+  }
+  return worst;
+}
+
+/** A redraw's checks: the stock size, the file decodes to the drawing (mean error at most 6), the right way up, and
+ * no texel's alpha 0 moved by the encoding. */
+function redrawValidation(stock: RGBAImage, drawn: RGBAImage, decoded: RGBAImage): Validation {
+  const problems: string[] = [];
+  const sizeSame = stock.width === decoded.width && stock.height === decoded.height;
+  if (!sizeSame) problems.push(`size ${decoded.width} x ${decoded.height}, stock ${stock.width} x ${stock.height}`);
+  const d = sizeSame ? meanDiff(decoded, drawn) : 0;
+  const f = sizeSame ? meanDiff(decoded, drawn, true) : 0;
+  let moved = false;
+  for (let i = 3; i < drawn.data.length && sizeSame; i += 4) if ((drawn.data[i] === 0) !== (decoded.data[i] === 0)) moved = true;
+  if (d > 6) problems.push(`decoded file differs from the drawing by ${d.toFixed(1)} on average`);
+  if (f + 0.5 < d) problems.push("the decoded file matches the drawing upside down: rows stored the wrong way");
+  if (moved) problems.push("the encoding moved alpha 0 (a cut-out or transparent cell)");
+  return { ok: !problems.length, problems, sizeSame, fileLengthSame: false, headerSame: false, alphaZeroKept: !moved, alphaMaxDiff: 0, lumaCorr: null, drawnMeanDiff: d, drawnFlippedMeanDiff: f };
+}
+
 export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinResult> {
   const files: Record<string, Uint8Array> = {};
   const textures: ManifestEntry[] = [];
@@ -113,6 +170,8 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
   const curve = alphaCurve(o.alpha);
   const outFormat = o.format ?? "auto";
   const list: AutoTexture[] = o.only ? AUTO.filter((t) => o.only!.includes(t.name)) : AUTO;
+  const style = oldGuiStyle(o.palette);
+  const uv = o.uv ?? (list.some((t) => t.action === "redraw") ? (await collectOldGui(resman)).uv : new Map<string, UvEntry[]>());
   for (const [i, t] of list.entries()) {
     await o.progress?.(i, list.length, t.name);
     const found = await resman.getAny(t.name, TEXTURE_EXTS);
@@ -124,7 +183,7 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
     const layer = resman.layers.find((l) => TEXTURE_EXTS.some((e) => resman.where(t.name, e) === l));
     const source = layer ? `${layer.kind}: ${layer.container.label}` : "?";
     if (ext === "ktx") {
-      skipped.push({ name: t.name, why: `found as KTX (${source}): KTX is not handled, retone it by hand or remove it` });
+      skipped.push({ name: t.name, why: `found as KTX (${source}): KTX is not handled, redraw it by hand or remove it` });
       continue;
     }
     const format = formatOf(stock, ext);
@@ -136,16 +195,18 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
     let compression: ManifestEntry["compression"];
     let tgaBytes: number | undefined;
     try {
-      if (t.action === "redraw") {
-        const h = readBiowareHeader(stock);
-        if (ext !== "dds" || !h) throw new Error(`expected a BioWare DDS, found ${format}`);
-        drawn = REDRAWS[t.name]!(o.nui, o.palette);
-        if (drawn.width !== h.width || drawn.height !== h.height) {
-          notes.push(`drawn at ${drawn.width} x ${drawn.height}, resampled to the stock ${h.width} x ${h.height}`);
-          drawn = resize(drawn, h.width, h.height);
-        }
-        bytes = encodeBiowareDds(drawn, h.bpp);
-        validation = validateTexture(stock, bytes, ext, { drawn });
+      if (t.action === "redraw" || t.group === "icon") {
+        // chrome drawn again; an icon a tab carries keeps its art, its dark ground in the tabs' ink
+        const before = decodeGuiTexture(stock, ext);
+        drawn = t.action === "redraw" ? (redrawOldGui({ name: t.name, stock: before, uv: uv.get(t.name) ?? [], style, alpha: o.alpha === "opaque" ? curve : (a) => a }) ?? undefined) : recolourIconGround(before, style);
+        if (!drawn) throw new Error("no redraw for it");
+        const stockTxi = await resman.get(t.name, "txi");
+        const w = encodeRedraw(drawn, stock, ext, outFormat, !stockTxi || readTxi(new TextDecoder("latin1").decode(stockTxi)).mipmap);
+        bytes = w.bytes;
+        outExt = w.ext;
+        compression = w.compression;
+        tgaBytes = w.tgaBytes;
+        validation = redrawValidation(before, drawn, decodeGuiTexture(bytes, outExt));
       } else {
         const map = t.group === "swatch" ? swatchColour(o.palette, t.name, o.alpha) : frameColour(o.palette, t.name);
         const raise = o.alpha === "opaque" && !t.keepAlpha;
@@ -162,9 +223,9 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
           const dxtLost = validation.edgesAfterDxt?.strongLost ?? [];
           if (dxtLost.length) notes.push(`DXT blocks flatten ${dxtLost.length} strong edge(s) the recolour keeps (${dxtLost.slice(0, 2).join("; ")}): the stock blocks hold 4 colours a block`);
         } else {
-          const r = retoneTga(stock, map, t.protect);
+          const r = retoneTga(stock, map);
           bytes = r.bytes;
-          validation = validateTexture(stock, bytes, ext, { mapped: mapPicture(decodeTga(stock), map, null, t.protect) });
+          validation = validateTexture(stock, bytes, ext, { mapped: mapPicture(decodeTga(stock), map, null) });
           if (outFormat !== "tga") {
             tgaBytes = bytes.length;
             const c = compressToDds(decodeTga(bytes));
@@ -188,7 +249,7 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
     files[file] = bytes;
     const txi = await resman.get(t.name, "txi");
     if (txi) files[`${t.name}.txi`] = txi;
-    const before = decodeTexture(stock, ext);
+    const before = t.action === "redraw" || t.group === "icon" ? decodeGuiTexture(stock, ext) : decodeTexture(stock, ext);
     textures.push({
       name: t.name,
       group: t.group,
@@ -202,11 +263,11 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
       ...(compression ? { compression } : {}),
       size: [before.width, before.height],
       txi: !!txi,
-      ...(t.protect ? { protected: t.protect } : {}),
       notes,
       validation,
     });
-    if (o.previews) previews.push({ name: t.name, group: t.group, before, after: decodeTexture(bytes, outExt), ok: validation.ok });
+    const after = t.action === "redraw" || t.group === "icon" ? decodeGuiTexture(bytes, outExt) : decodeTexture(bytes, outExt);
+    if (o.previews) previews.push({ name: t.name, group: t.group, before, after, ok: validation.ok });
   }
   const p = o.palette;
   return {

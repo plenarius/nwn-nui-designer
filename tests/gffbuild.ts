@@ -1,8 +1,9 @@
 /** Small GFF V3.2 and ERF files built in memory, for the hak order tests (no game data needed). */
 
-export type Field = { label: string } & ({ str: string } | { dword: number } | { list: Field[][] });
+export type Field = { label: string } & ({ str: string } | { resref: string } | { dword: number } | { int: number } | { float: number } | { struct: Field[] } | { list: Field[][] });
 
-/** A GFF V3.2 of fileType whose top-level struct has fields (CExoString, DWORD and lists of structs only). */
+/** A GFF V3.2 of fileType whose top-level struct has fields (CExoString, ResRef, DWORD, INT, FLOAT, structs and
+ * lists of structs only). */
 export function makeGff(fileType: string, fields: Field[]): Uint8Array {
   const structs: [type: number, data: number, count: number][] = [];
   const fieldRows: [type: number, label: number, data: number][] = [];
@@ -25,7 +26,16 @@ export function makeGff(fileType: string, fields: Field[]): Uint8Array {
       if ("str" in f) {
         fieldRows[id] = [10, label(f.label), fieldData.length];
         fieldData.push(...u32(f.str.length), ...[...f.str].map((c) => c.charCodeAt(0)));
+      } else if ("resref" in f) {
+        fieldRows[id] = [11, label(f.label), fieldData.length];
+        fieldData.push(f.resref.length, ...[...f.resref].map((c) => c.charCodeAt(0)));
       } else if ("dword" in f) fieldRows[id] = [4, label(f.label), f.dword];
+      else if ("int" in f) fieldRows[id] = [5, label(f.label), f.int >>> 0];
+      else if ("float" in f) {
+        const dv = new DataView(new ArrayBuffer(4));
+        dv.setFloat32(0, f.float, true);
+        fieldRows[id] = [8, label(f.label), dv.getUint32(0, true)];
+      } else if ("struct" in f) fieldRows[id] = [14, label(f.label), addStruct(0, f.struct)];
       else {
         const items = f.list.map((s) => addStruct(8, s));
         fieldRows[id] = [15, label(f.label), listIndices.length * 4];

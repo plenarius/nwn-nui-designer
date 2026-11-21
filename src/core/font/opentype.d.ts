@@ -31,6 +31,7 @@ declare module "opentype.js" {
         usWinAscent: number;
         usWinDescent: number;
         fsSelection: number;
+        fsType?: number;
       };
       [k: string]: unknown;
     };
