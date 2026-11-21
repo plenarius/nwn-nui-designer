@@ -182,11 +182,8 @@ export const FLAT_EXCEPTIONS: Record<string, [Rect | null, string][]> = {
     [[2, 2, 14, 14], DXT_CORNERS],
     [[18, 2, 30, 14], DXT_CORNERS],
   ],
-  gui_map_pieces: [
-    [[2, 2, 14, 14], DXT_CORNERS],
-    [[18, 2, 30, 14], DXT_CORNERS],
-    [[34, 2, 46, 14], DXT_CORNERS],
-  ],
+  // three columns of 16 px buttons, one row per state (up, down, disabled, hover)
+  gui_map_pieces: [0, 16, 32, 48].flatMap((y) => [0, 16, 32].map((x) => [[x + 2, y + 2, x + 14, y + 14], DXT_CORNERS] as [Rect, string])),
   gui_gring01: [[null, "the ring under the 3D pointer, mapped onto a polygon, not a stretched GUI cell"]],
   gui_textbubble: [[null, "the speech bubble's corner: a quarter disc its models stretch into the bubble's rounded ends; a curve cannot be one colour along the stretch"]],
   gui_lightning: [[null, "the full-screen lightning flash (pnl_lightning): a light overlay on purpose"]],

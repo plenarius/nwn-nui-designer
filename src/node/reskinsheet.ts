@@ -91,9 +91,10 @@ export function contactSheet(title: string, previews: Preview[], palette: Reskin
 /** The contact sheets' titles, one sheet per group. */
 export const GROUP_TITLES: Record<Group, string> = {
   swatch: "colour swatch strips",
-  frame: "in-game frames, buttons and controls",
+  frame: "in-game frames, buttons and panels",
   pregame: "character select, pre-game and creation wizard",
-  control: "scrollbar, arrow buttons and slider (redrawn)",
+  control: "small controls, tabs, bars and the radial menu (drawn by hand)",
+  icon: "icons the tabs carry (their dark ground recoloured)",
 };
 
 /** One contact sheet per group, contact-<group>.png in dir; returns the files written. */

@@ -14,6 +14,10 @@ import { buildInventory, inventoryTsv, readInventoryTsv } from "../src/core/oldg
 import { readMdl } from "../src/core/oldgui/mdl.js";
 import { builtinRole } from "../src/core/oldgui/roles.js";
 import { decodeGuiTexture } from "../src/core/oldgui/texture.js";
+import { oldGuiStyle, redrawOldGui } from "../src/core/oldgui/draw/index.js";
+import { alphaCurve } from "../src/core/reskin/colour.js";
+import { paletteFromStyle } from "../src/core/reskin/palette.js";
+import { chooseSkin } from "../src/node/openskin.js";
 import { readTxi, txiSummary } from "../src/core/oldgui/txi.js";
 import { findGame, isGameDir, openResources } from "../src/node/setup.js";
 import { findClient } from "../src/node/oldguiclient.js";
@@ -307,5 +311,24 @@ describe("with the game", () => {
     expect(checkStateIcons(inv.rows, inv.cells)).toEqual([]);
     expect(checkFillBars(inv.rows, inv.cells)).toEqual([]);
     expect(inv.rows.filter((r) => r.drawn && r.treatment === "redraw").length).toBeGreaterThan(100);
-  }, 120_000);
+
+    // every chrome texture redrawn from the game's own (Ink and brass): each passes the flatness check as drawn
+    const pal = paletteFromStyle(chooseSkin("ink").style);
+    const style = oldGuiStyle(pal);
+    const failed: string[] = [];
+    let n = 0;
+    for (const r of inv.rows.filter((x) => x.drawn && x.treatment === "redraw")) {
+      const f = await resman.getAny(r.resref, ["dds", "tga"]);
+      if (!f) continue;
+      const out = redrawOldGui({ name: r.resref, stock: decodeGuiTexture(f[0], f[1]), uv: c.uv.get(r.resref) ?? [], style, alpha: alphaCurve("opaque") });
+      expect(out, r.resref).not.toBeNull();
+      n++;
+      const sk = flatSkips(r.resref);
+      if (sk.whole) continue;
+      const bad = checkFlat(r.resref, out!, inv.cells.textures[r.resref]?.cells ?? [], sk.rects, { allowed: lightFills(pal), ink: pal.ink }).filter((x) => x.fail);
+      failed.push(...bad.map((b) => `${b.texture}: ${b.message}`));
+    }
+    expect(n).toBeGreaterThan(140);
+    expect(failed).toEqual([]);
+  }, 300_000);
 });

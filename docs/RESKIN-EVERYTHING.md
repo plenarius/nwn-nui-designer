@@ -20,12 +20,10 @@ Contents: [Prerequisites](#prerequisites) · [Export the full theme](#export-the
 [Check and test](#check-and-test) · [Checklist](#checklist-the-theme-is-complete) ·
 [Appendix: how it works](#appendix-how-it-works)
 
-> **Status.** The export below still **recolours** most of the original GUI's chrome. In game a recolour is not
-> enough: the windows keep the stock bevels, gradients and parchment in the new colours, and some controls break
-> ([What goes wrong in game](#what-goes-wrong-in-game)). `pnpm old-gui` now takes a full inventory of the original
-> GUI from your game and checks a theme against it; its coverage and flatness checks fail on today's export, on
-> purpose. A redraw of the chrome from the skin's own colours replaces the recolour next
-> ([GAPS.md](GAPS.md#the-original-gui)).
+> **Status.** The export **redraws** the original GUI's chrome from the skin's own colours (flat faces, one rule,
+> the pressed fill and the hover glow, every state in the cell its model reads), and `pnpm old-gui check` passes on
+> it: every one of the 148 chrome textures is redrawn and every face is flat. Previews of the real layouts and a
+> frame-continuity check are next ([GAPS.md](GAPS.md#the-original-gui)).
 
 ## The rule: no game art in a repository
 
@@ -95,7 +93,7 @@ contact sheets. "Read the stock textures through the module's haks too" is `--no
 
 | | |
 |---|---|
-| `stock/` | **output A**: the NUI skin (`nui_skin.tml`, its textures and fonts, the fonts' OFL texts, the licence note) and the retoned original GUI (100 textures, each with its stock `.txi`), all under the **stock names** |
+| `stock/` | **output A**: the NUI skin (`nui_skin.tml`, its textures and fonts, the fonts' OFL texts, the licence note) and the redrawn original GUI (161 textures with the game alone, each with its stock `.txi`), all under the **stock names** |
 | `NAME.hak` | output A as a hak (`--out-hak`) |
 | `prefixed/` | **output B** (`--prefix`): the same files under the prefix |
 | `prefixed.json` | output B's map: each stock texture to its prefixed name, and the skin's resref |
@@ -104,8 +102,8 @@ contact sheets. "Read the stock textures through the module's haks too" is `--no
 | `reskin-manifest.json` | per original-GUI texture: where the stock one was read (game, hak, folder), its stock format and the format written, size, bytes, recoloured or redrawn, the compression error, the checks |
 | `contact-*.png` | stock and new side by side, one sheet per group (command line only) |
 
-Bronze, for scale: `stock/` holds 220 files (the NUI skin's 38: the `.tml`, 32 textures, 2 fonts, 2 OFL texts and the
-note; 100 original-GUI textures, 97 DDS and 3 TGA; 82 `.txi`), and each hak is about 6.9 MB.
+Ink and brass, for scale, with the game alone: `stock/` holds 332 files (the NUI skin's 39; 161 original-GUI
+textures, 145 DDS and 16 TGA, and their `.txi`).
 
 ## Output A: one theme for everyone
 
@@ -256,9 +254,9 @@ marks) count as faces on purpose. Exit code 0 when everything passes, 1 when a c
 | flatness | a chrome face (a region at least 3 texels thick) whose colour spreads over 10 levels (a bevel, ramp, vignette, mottling); a face lighter than the skin's fill that is not one of its light fills; a cell a model draws at 3 or more pixels per texel (or resizes at run time) whose texels change along that axis: filtering spreads any change over the whole stretch. Pictures inside frames, icons in a control's atlas and a few known cases are skipped, each with its reason |
 | fonts | the theme replaces one or two of the old GUI's three font files, not all three ([Fonts](#the-original-guis-fonts)) |
 
-On today's export (Ink and brass), coverage fails on 145 of the 148 chrome textures (recoloured) and flatness on 52
-of the 97 it checks: that is the gap the redraw closes. The same checks pass on a complete hand-made redraw of the
-whole set.
+On `export-theme ink` every check passes: coverage 148 of 148 redrawn, flatness on the 155 textures it reads (148
+chrome and the flat cells), with the game alone (EE 8193.37). Before the redraw, coverage failed on 145 of the 148
+(recoloured) and flatness on 52 of 97.
 
 ## What goes wrong in game
 
@@ -416,36 +414,29 @@ the hak you are writing with `--out-hak`, which the reskin skips by itself).
 
 ### What the reskin changes
 
-100 textures in four groups. The inventory ([above](#the-original-guis-inventory-and-checks)) counts 148 chrome
-textures to redraw and 18 that are flat already, of 476 drawn: the reskin covers part of them, and recolours most of
-those it covers.
+Every chrome texture the inventory counts (148), plus the flat colour cells and the icons the tabs carry: 161
+textures in all with the game alone. The code is `src/core/oldgui/draw/`.
 
-| Group | Count | What they are | How |
-|---|---|---|---|
-| **Colour swatch strips** (`gui_boxes*`, `gui_replace01-06`, `gui_ig_main`, `gui_lightning`, `gui_rgbc`, `gui_textbubble`) | 14 | Strips of colour cells. Models stretch one or two texels of a cell over a box, a bevel or a divider, so these colour almost every panel at once. | Recoloured cell by cell; the cells never move (UVs point at them). Alpha as below. |
-| **In-game frames, buttons and controls** (`ctl_*`, `pnl_opt_*`, `edit_box_*`, `qb_but`, `inv_stacksplit`, tab strips, inventory cells) | 40 | Whole-panel and button images drawn 1:1: a black field with gold rules; buttons hold up / down / hover frames in one atlas. | Recoloured per pixel by luminance, so frames, states and layout stay exactly where they were. The painted town picture inside `ctl_edt_mod_in1` is kept as it is. |
-| **Character select, pre-game and creation wizard** (`ctl_cg_*`, `pnl_playmod*`, `gui_pre_bkgnd01/02`, `pre_load_01`, ...) | 43 | The same kind of frame art on the screens before the game. | As the frames. 32-bit cut-out buttons (the creation arrows, the help button) keep their alpha byte for byte. |
-| **Scrollbar, arrow buttons, slider** (`gui_scrollbar`, `gui_chr_arrowbtn`, `gui_slider`) | 3 | Tiny pixel-art pieces. | Redrawn from the skin's own `nui_scrollv`, `nui_button_n`, `nui_cnt_up/down` and `nui_slider`, so the two GUIs' scrollbars match. |
+| What | How |
+|---|---|
+| **Button atlases** (`ctl_btn_*`, `ct_btn_srv_*`, `ctl_att*`, `ctl_class`, `ctl_skill`, ...) | Every frame a model reads, found from the models' UVs per animation (`up`, `down`, `hilite`, `disabled`, `checked*`), drawn as a button in its state: a 1 px outer edge, one rule in the skin's accent, a flat face; hover adds the glow rule inside it, pressed and selected take the pressed fill, disabled the grey. A frame the stock marks with its blue "cloud" is the pressed one. A disabled animation that reads another state's frame draws that state. The sub-cell rules of a normal frame are kept. |
+| **Panels** (`pnl_*`, `ctl_cg_*`, `ctl_pre_*`, `edit_box_*`, ...) | The window fill; each stock rule (a bevel of 2 or 3 texels, a doubled line) becomes one 1 px rule on its brightest line, where the stock draws it, so strips cut from different places of a texture still meet. Pictures inside frames (the module and new-game paintings, the death screen, the server list's logo) are kept. |
+| **Colour-cell strips** (`gui_boxes*`, `gui_ig_main`) | Every grey ramp becomes a flat level: translucent greys the fill, opaque greys and whites the rule, a single grey separator row the darker track rule; signal colours (health tints, the quick bar's outlines) stay, a brown thumb cell becomes the brass. List rows are flat (a rule on top, the face, the glow under the rule on hover, the pressed fill when selected). The shared list-row strip (columns 224-227) carries its rule on its last row, the loot window's hover cells are clear. |
+| **Small controls, bars, tabs, radial** | Drawn by hand at the stock size and layout: the scrollbar thumb (a flat brass bar at the NUI's proportions), the slider, arrow buttons, the checkbox and close face, item cells, the map and party-bar buttons with their glyph, the creation arrows, the container bar, the checkbox inside `ctl_btn_jnl_inv` (its icons kept). The load bar's frame is three strips with their rules on the same rows and its fill one band along the whole width; the rest bar is a band across its 14-texel cell. Text tabs are outlined on top and both sides and open at the bottom (their txi clamps, so the body is one row stretched down); the Character Record's tabs mark the selected one by its own rows. The radial menu's discs and rings are circles with anti-aliased alpha and a rim of 2.2 texels (1.3 for pieces drawn 1:1). The Player List's frame atlas keeps its cells' and box's rules on the same rows. |
+| **Flat cells** (`gui_replace01-06`, `gui_rgbc`, `gui_lightning`, `gui_gring01`, `gui_pre_chkbox`) | Already one colour per cell: recoloured cell by cell. |
+| **Icons the tabs carry** (`gui_char_icons`, `gui_inv_icons`, `gui_inv_sto_icon`) | Their dark ground recoloured to the tabs' ink; the art stays. |
 
-Every texture keeps the stock **name, size, pixel layout and alpha layout**. A stock DDS keeps its format, header,
-mip chain and block order (a DXT5 DDS stays a DXT5 DDS with the same number of levels); a stock TGA is recoloured in
-place (same header, origin bit and row order) and then, with `--format auto` or `dds`, compressed to a DDS
-([Format and size](#format-and-size)). Only colours (and, for DXT5 with an opaque skin, alpha) change. The checks
-(in `manifest.json`), each against the stock texture decoded:
+Then every cell a model draws stretched (3 or more pixels per texel, or resized at run time) is made one colour
+along the stretch, the commonest of the texels it covers, so filtering has nothing to spread; a frame's 1:1 rule
+that a cell reaches only at its very end stays. Every face colour is snapped to one DXT1 stores exactly, keeping its
+hue, and the DDS encoder weighs face texels 12 times, so a block that holds an edge, a rule and a face keeps the face.
 
-- same file length, same header and same size (for the recolour, before any compression);
-- alpha 0 exactly where the stock has 0, alpha equal to the stock one (or the stock one through the curve, within
-  one DXT5 step);
-- luminance following the intended picture (the stock one mapped texel by texel), and following it the right way up
-  (a moved layout fails, and so does a TGA or DDS whose rows run the wrong way). The stock picture itself is not the
-  reference: a light skin turns its black fields into light paper, which inverts the luminance on purpose;
-- **every rule and divider still visible**: the stock picture's edges (neighbouring texels that differ by 24 or more,
-  as they show over black and over a mid-dark world) must not be flattened. One rule against a dark field (80 apart
-  in the stock) lost fails the texture, and so does a quarter of all the kinds of edge. The recolour is judged on
-  its own (the stock picture mapped texel by texel); what DXT's 4-colour blocks flatten on top is noted in the
-  manifest;
-- for redraws, the decoded file against the drawing and against the drawing upside down (a DDS stored the wrong way
-  fails).
+Every texture keeps the stock **name, size, UV layout and alpha layout** (cut-outs stay cut out). A stock DDS stays a
+DDS (DXT5 when the redraw has alpha); a stock TGA becomes a DDS with `--format auto` unless the DDS is too far off,
+now including a flat face that DXT would move by more than 4 levels ([Format and size](#format-and-size)). The
+checks (in `manifest.json`): the stock size; the decoded file against the drawing (mean error at most 6), and not
+upside down; no alpha 0 moved by the encoding. The flat cells keep the recolour's checks (same header, alpha layout,
+luminance following the stock one mapped, every rule still visible).
 
 ### What is left to a person
 
@@ -473,8 +464,26 @@ comparing it with the stock file in the contact sheet.
 
 ### How the two GUIs are made to match
 
-The palette comes from the skin's generator style (`src/core/reskin/palette.ts`); `manifest.json` records it. Each
-stock pixel is then mapped by its luminance along ramps of that palette (`src/core/reskin/colour.ts`), so gradients
+The palette comes from the skin's generator style (`src/core/reskin/palette.ts`); `manifest.json` records it. The
+redraw (`src/core/oldgui/draw/style.ts`) takes its colours from it, each snapped to a colour DXT1 stores exactly:
+
+| Redraw colour | From the skin |
+|---|---|
+| face | the button body |
+| window fill, tab ink | the window body |
+| pressed / selected face | halfway between the active body's two ends |
+| rule | the accent |
+| hover rule | the glow |
+| outer edge | the window body, 70 % towards black |
+| track, field, item cell | the window body, 40 % towards black; its rule the accent 45 % towards the window body |
+| thumb or knob brass | the accent 15 % towards the window body |
+| disabled face and rule | the button body and the mark, as greys |
+| marks (ticks, X, arrows, glyphs) | the mark |
+
+The flat cells are recoloured as below. The rest of this section is how a recolour maps colours (it is what the
+flat cells get, and what the export did for all chrome before the redraw).
+
+Each stock pixel is mapped by its luminance along ramps of that palette (`src/core/reskin/colour.ts`), so gradients
 stay gradients:
 
 - **neutral** (black and greys): ink → raised → button → pressed → accent;

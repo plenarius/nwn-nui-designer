@@ -215,10 +215,15 @@ export function fitColourBlock(T: Float64Array, w: Float64Array, dxt5: boolean, 
   const hi = m.map((v, k) => v + ax[k]! * tmax);
   const lo = m.map((v, k) => v + ax[k]! * tmin);
   let best: [number, number, number] | null = null;
-  for (const start of [
+  const starts: [number, number][] = [
     [pack565(hi), pack565(lo)],
     [pack565(m), pack565(m)],
-  ] as [number, number][]) {
+  ];
+  // a block of a few flat colours (a frame's edge, rule and face): every pair of them as endpoints, so a heavily
+  // weighted face can land exactly on one
+  const distinct = [...new Set(Array.from({ length: 16 }, (_, i) => (ww[i] ? pack565([T[i * 3]!, T[i * 3 + 1]!, T[i * 3 + 2]!]) : -1)).filter((c) => c >= 0))];
+  if (distinct.length > 2 && distinct.length <= 6) for (const a of distinct) for (const b of distinct) if (a !== b) starts.push([a, b]);
+  for (const start of starts) {
     let [c0, c1] = start;
     let err = blockError(T, ww, c0, c1, four);
     // coordinate descent over the 26 neighbours of each endpoint in turn
@@ -403,9 +408,10 @@ export function halve(im: RGBAImage): RGBAImage {
 
 /**
  * A BioWare DDS of a picture (rows top to bottom, as it is shown): DXT1 (bpp 3, opaque) or DXT5 (bpp 4), every mip
- * level, each level stored bottom row first.
+ * level, each level stored bottom row first. weights: how much each texel of the first level counts (display order,
+ * default 1), so a flat face can stay exact where its block also holds a frame's edge and rule.
  */
-export function encodeBiowareDds(im: RGBAImage, bpp: 3 | 4): Uint8Array {
+export function encodeBiowareDds(im: RGBAImage, bpp: 3 | 4, weights?: ArrayLike<number>): Uint8Array {
   const dxt5 = bpp === 4;
   const bs = dxt5 ? 16 : 8;
   const levels: RGBAImage[] = [im];
@@ -417,6 +423,8 @@ export function encodeBiowareDds(im: RGBAImage, bpp: 3 | 4): Uint8Array {
     let o = 0;
     const T = new Float64Array(48);
     const A = new Float64Array(16);
+    const W = new Float64Array(16);
+    const wt = lv === im ? weights : undefined;
     for (let by = 0; by < Math.max(lh, 4); by += 4) {
       for (let bx = 0; bx < Math.max(lw, 4); bx += 4) {
         for (let i = 0; i < 16; i++) {
@@ -428,13 +436,14 @@ export function encodeBiowareDds(im: RGBAImage, bpp: 3 | 4): Uint8Array {
           T[i * 3 + 1] = lv.data[p + 1]!;
           T[i * 3 + 2] = lv.data[p + 2]!;
           A[i] = lv.data[p + 3]!;
+          W[i] = wt ? wt[y * lw + x]! : 1;
         }
         if (dxt5) {
           const ab = fitAlphaBlock(A);
           const na = decodeAlphaBlock(ab);
           out.set(ab, o);
-          out.set(fitColourBlock(T, Float64Array.from(na, (a) => a / 255 + 0.02), true), o + 8);
-        } else out.set(fitColourBlock(T, new Float64Array(16).fill(1), false), o);
+          out.set(fitColourBlock(T, Float64Array.from(na, (a, i) => (a / 255 + 0.02) * W[i]!), true), o + 8);
+        } else out.set(fitColourBlock(T, Float64Array.from(W), false), o);
         o += bs;
       }
     }

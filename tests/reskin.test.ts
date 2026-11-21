@@ -11,12 +11,11 @@ import { decodeTga } from "../src/core/res/tga.js";
 import { BIOWARE_DDS_HEADER, blockCount, decodeAlphaBlock, encodeBiowareDds, mipLevels, readBiowareHeader } from "../src/core/reskin/bc.js";
 import { alphaCurve, darkBrass, lsh, swatchColour } from "../src/core/reskin/colour.js";
 import { hex, paletteFromStyle } from "../src/core/reskin/palette.js";
-import { NUI_PIECES, type NuiPieces } from "../src/core/reskin/redraw.js";
 import { reportMarkdown, reskin, reskinHak } from "../src/core/reskin/reskin.js";
 import { retoneDds, retoneTga } from "../src/core/reskin/retone.js";
 import { AUTO, MANUAL } from "../src/core/reskin/textures.js";
 import { validateTexture } from "../src/core/reskin/validate.js";
-import { BRONZE, CLEAN, styleTextures } from "../src/core/skin/gen/style.js";
+import { BRONZE, CLEAN } from "../src/core/skin/gen/style.js";
 
 /** A synthetic swatch strip: columns of grey cells at the stock GUI's alphas, a gold cell, a red signal cell. */
 function strip(w = 32, h = 8): RGBAImage {
@@ -60,11 +59,6 @@ function frameTga(w = 16, h = 8): Uint8Array {
   }
   return out;
 }
-
-const nui = (): NuiPieces => {
-  const t = styleTextures(CLEAN);
-  return Object.fromEntries(NUI_PIECES.map((n) => [n, t.get(n)!])) as unknown as NuiPieces;
-};
 
 describe("palette", () => {
   it("Ink and brass gives the colours of Layonara's hand-made set", () => {
@@ -189,24 +183,26 @@ describe("reskin", () => {
   it("writes the stock names with their txi, a manifest, and a hak that reads back", async () => {
     const rm = await fakeGame();
     const p = paletteFromStyle(CLEAN);
-    const res = await reskin(rm, { palette: p, nui: nui(), skin: { id: "ink", title: "Ink and brass", from: "test" }, alpha: "opaque", format: "tga", previews: true });
+    const res = await reskin(rm, { palette: p, skin: { id: "ink", title: "Ink and brass", from: "test" }, alpha: "opaque", format: "tga", previews: true });
     expect(Object.keys(res.files).sort()).toEqual(["ctl_att.tga", "gui_boxes.dds", "gui_boxes.txi", "gui_scrollbar.dds", "gui_slider.dds"]);
     const m = res.manifest;
-    expect(m.textures.map((t) => [t.name, t.action, t.format])).toEqual([
-      ["gui_boxes", "recoloured", "dds dxt5"],
-      ["ctl_att", "recoloured", "tga 24-bit"],
-      ["gui_scrollbar", "redrawn", "dds dxt1"],
-      ["gui_slider", "redrawn", "dds dxt5"],
+    // every chrome texture is redrawn, never recoloured
+    expect(m.textures.map((t) => [t.name, t.action, t.format, t.output])).toEqual([
+      ["ctl_att", "redrawn", "tga 24-bit", "tga 32-bit"],
+      ["gui_scrollbar", "redrawn", "dds dxt1", "dds dxt5"],
+      ["gui_slider", "redrawn", "dds dxt5", "dds dxt5"],
+      ["gui_boxes", "redrawn", "dds dxt5", "dds dxt5"],
     ]);
     for (const t of m.textures) expect(t.validation.problems, t.name).toEqual([]);
-    expect(m.textures[0]!.txi).toBe(true);
-    expect(m.textures[0]!.source).toBe("key: synthetic game");
+    const boxes = m.textures.find((t) => t.name === "gui_boxes")!;
+    expect(boxes.txi).toBe(true);
+    expect(boxes.source).toBe("key: synthetic game");
     expect(m.palette.ink).toBe("#141312");
     // everything the reskin handles but the game lacks is listed, and the manual list is complete
     expect(m.skipped.length).toBe(AUTO.length - 4);
     expect(m.manual.length).toBe(MANUAL.length);
     expect(m.manual.find((t) => t.name === "gui_banner")).toMatchObject({ found: true, class: "picture" });
-    expect(res.previews.map((pv) => pv.name)).toEqual(["gui_boxes", "ctl_att", "gui_scrollbar", "gui_slider"]);
+    expect(res.previews.map((pv) => pv.name)).toEqual(["ctl_att", "gui_scrollbar", "gui_slider", "gui_boxes"]);
     expect(reportMarkdown(m)).toMatch(/gui_banner/);
 
     const hak = reskinHak(res.files, "Ink and brass", new Date(Date.UTC(2026, 10, 18)));
@@ -221,7 +217,7 @@ describe("reskin", () => {
   it("auto writes a stock TGA as a DDS when it compresses well, one format per name, and says so", async () => {
     const rm = await fakeGame();
     const p = paletteFromStyle(CLEAN);
-    const res = await reskin(rm, { palette: p, nui: nui(), skin: { id: "ink", title: "Ink and brass", from: "test" }, alpha: "opaque" });
+    const res = await reskin(rm, { palette: p, skin: { id: "ink", title: "Ink and brass", from: "test" }, alpha: "opaque" });
     expect(Object.keys(res.files).sort()).toEqual(["ctl_att.dds", "gui_boxes.dds", "gui_boxes.txi", "gui_scrollbar.dds", "gui_slider.dds"]);
     const t = res.manifest.textures.find((x) => x.name === "ctl_att")!;
     expect(t).toMatchObject({ format: "tga 24-bit", output: "dds dxt1", file: "ctl_att.dds" });
@@ -232,7 +228,7 @@ describe("reskin", () => {
     expect(res.manifest.outputFormat).toBe("auto");
     expect(reportMarkdown(res.manifest)).toMatch(/## Formats[\s\S]*ctl_att/);
     // dds forces it, tga keeps it
-    const tga = await reskin(rm, { palette: p, nui: nui(), skin: res.manifest.skin, alpha: "opaque", format: "tga", only: ["ctl_att"] });
+    const tga = await reskin(rm, { palette: p, skin: res.manifest.skin, alpha: "opaque", format: "tga", only: ["ctl_att"] });
     expect(Object.keys(tga.files)).toEqual(["ctl_att.tga"]);
     expect(tga.manifest.textures[0]!.compression).toBeUndefined();
   });

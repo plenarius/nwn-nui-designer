@@ -2,156 +2,45 @@
  * Which textures of the original (MDL-panel) GUI the reskin handles, and which it leaves to a person. Names only:
  * the art itself is read from the user's own install and never kept in this repository.
  *
- * The lists come from Layonara's survey of the client (EE 8193.37): 722 GUI models in use draw 211 textures, of which
- * 193 exist. docs/RESKIN-EVERYTHING.md explains each group.
+ * The chrome is the role tables' (src/core/oldgui/roles.ts, from a survey of the EE 8193.37 client): it is redrawn.
+ * docs/RESKIN-EVERYTHING.md explains each group.
  */
+import { REDRAWN, ICON_GROUNDS } from "../oldgui/draw/index.js";
+import { builtinRole } from "../oldgui/roles.js";
 
-export type Group = "swatch" | "frame" | "pregame" | "control";
+/** The contact sheets' groups: colour-cell strips, in-game chrome, the pre-game pages, the hand-drawn controls, and the
+ * icon atlases whose ground is recoloured. */
+export type Group = "swatch" | "frame" | "pregame" | "control" | "icon";
 
 export interface AutoTexture {
   name: string;
   group: Group;
-  /** recolour: every pixel mapped (frames, states and layout kept); redraw: drawn from the skin's NUI textures. */
+  /** redraw: drawn again in the skin's style (src/core/oldgui/draw); recolour: every pixel mapped (flat colour cells,
+   * and the dark ground of the icons the tabs carry). */
   action: "recolour" | "redraw";
-  /** Keep the stock alpha even with an opaque skin (highlight cells drawn over or under item icons). */
+  /** Keep the stock alpha even with an opaque skin. */
   keepAlpha?: boolean;
-  /** Pixels (left, top, right, bottom; top-down, exclusive) copied unchanged: a picture inside a frame. */
-  protect?: [number, number, number, number];
 }
 
-/** The 14 colour-swatch strips: cells of colour stretched over nearly every box, bevel and divider. */
-export const SWATCHES = [
-  "gui_boxes",
-  "gui_boxes_chrgen",
-  "gui_boxes_chrsht",
-  "gui_boxes_ingame",
-  "gui_ig_main",
-  "gui_lightning",
-  "gui_replace01",
-  "gui_replace02",
-  "gui_replace03",
-  "gui_replace04",
-  "gui_replace05",
-  "gui_replace06",
-  "gui_rgbc",
-  "gui_textbubble",
-];
+/** Flat colour cells: already one colour per cell, so a colour map is all they need. */
+export const FLAT_CELLS = ["gui_replace01", "gui_replace02", "gui_replace03", "gui_replace04", "gui_replace05", "gui_replace06", "gui_rgbc", "gui_lightning", "gui_gring01", "gui_pre_chkbox"];
 
-/** In-game buttons, frames and controls (whole-panel art drawn 1:1, buttons with their up / down / hover frames). */
-export const FRAMES = [
-  "ctl_att",
-  "ctl_btn_64x24",
-  "ctl_btn_dm",
-  "ctl_btn_dm_make",
-  "ctl_btn_dm_task",
-  "ctl_btn_inv_st",
-  "ctl_btn_inv_st1",
-  "ctl_btn_lvlup",
-  "ctl_cg_btn_app",
-  "ctl_chk_pre",
-  "ctl_con_prtl_inf",
-  "ctl_edt_gen",
-  "ctl_edt_mod_in1",
-  "ctl_ig_btn_pvpre",
-  "ctl_pre_btn_save",
-  "edit_box_150x24",
-  "edit_box_276x25",
-  "gui_gring01",
-  "gui_pre_chkbox",
-  "gui_spell_splvl2",
-  "inv_stacksplit",
-  "qb_but",
-  // options and key-binding pages, the small OK dialog, the CD-key page
-  "ctl_opt_btn_key",
-  "ctl_opt_gen",
-  "ctl_opt_vid_1",
-  "pnl_con_vid_mode",
-  "pnl_opt_key",
-  "pnl_opt_key_page",
-  "pnl_pre_cdkey",
-  "pnl_util_ok",
-  // tab strips and inventory cells (tiled), highlight cells
-  "gui_ig_jourtabs",
-  "gui_inv_bkgnd2",
-  "gui_inv_sto_tab",
-  "gui_inv_tab",
-  "gui_inv_hilite",
-  "gui_inv_unhilite",
-  "gui_invm_hl",
-  "gui_invm_ocupied",
-  "gui_invm_unhl",
-  "gui_loadstatus",
-];
+/** The pre-game pages: character select, the creation wizard, the server list, load and save. */
+const PREGAME = /^(ct_btn_srv|pnl_srv|gui_srv|ctl_pre|pre_load|ctl_btn_pre|cg_main|gui_pre|pnl_enable|ctl_edt_mod|ctl_cg|pnl_cg|pnl_chr_appear|pnl_con_prtl|ctl_con_prtl|pnl_playmod|ctl_class|ctl_skill|ctl_att|pnl_feats|pnl_help|pnl_select|ctl_btn_169x39|pnl_util_okt|pnl_connectstat|pnl_opt_gen|gui_ig_chartabs|gui_spell_hilite)/;
 
-/** Character select (the vault), the pre-game pages and the creation wizard. */
-export const PREGAME = [
-  "ctl_att_01",
-  "ctl_btn_pre_118",
-  "ctl_btn_pre_178",
-  "ctl_btn_pre_360",
-  "ctl_cg_att",
-  "ctl_cg_bigportrt",
-  "ctl_cg_edit_age",
-  "ctl_cg_edit_fam",
-  "ctl_cg_edit_fnam",
-  "ctl_cg_edit_s",
-  "ctl_cg_edt_bio",
-  "ctl_cg_fam",
-  "ctl_cg_numbox3",
-  "ctl_cg_portraits",
-  "ctl_cg_skill",
-  "ctl_cg_spinfo",
-  "ctl_class",
-  "ctl_pre_load1",
-  "ctl_skill",
-  "gui_ig_chartabs",
-  "gui_ig_chartabs2",
-  "gui_pre_bkgnd01",
-  "gui_pre_bkgnd02",
-  "gui_pre_playtabs",
-  "pnl_chr_appear",
-  "pnl_con_prtl_inf",
-  "pnl_feats1",
-  "pnl_help",
-  "pnl_select",
-  "ctl_cg_btn_right",
-  "ctl_cg_btn_help",
-  "ctl_btn_169x39",
-  "ctl_cg_playmod",
-  "pnl_playmod",
-  "pnl_playmod1",
-  "pre_load_01",
-  "pnl_cg_clericd",
-  "ctl_cg_spellhlp",
-  "ctl_cg_spells",
-  "gui_spell_hilite",
-  "pnl_util_okt",
-  "pnl_connectstat",
-  "pnl_opt_gen",
-];
+function groupOf(name: string): Group {
+  const kind = builtinRole(name)?.kind;
+  if (kind === "cells") return "swatch";
+  if (kind && ["scrollbar", "slider", "checkbox", "bar", "item-cell", "radial", "tab", "shape"].includes(kind)) return "control";
+  if (["gui_chr_arrowbtn", "ctl_chk_pre", "ctl_btn_x", "gui_spl_btn_up", "gui_spl_btn_down", "ctl_cg_btn_help", "pb_but_pvp", "pb_but_rest", "pb_but_spell", "gui_map_pieces"].includes(name)) return "control";
+  return PREGAME.test(name) ? "pregame" : "frame";
+}
 
-/** The old scrollbar, its arrow buttons and the options slider: redrawn from the skin's NUI pieces. */
-export const CONTROLS = ["gui_scrollbar", "gui_chr_arrowbtn", "gui_slider"];
-
-const PROTECT: Record<string, [number, number, number, number]> = {
-  // the painted town (bridge and harbour) inside the module-description frame
-  ctl_edt_mod_in1: [120, 338, 392, 456],
-};
-
-/** Inventory highlight cells: translucent on purpose (the item shows through). */
-const KEEP_ALPHA = new Set(["gui_inv_hilite", "gui_inv_unhilite", "gui_invm_hl", "gui_invm_ocupied", "gui_invm_unhl"]);
-
+/** Everything the reskin writes: the chrome redrawn, the flat cells and the icon grounds recoloured. */
 export const AUTO: AutoTexture[] = [
-  ...SWATCHES.map((name) => ({ name, group: "swatch" as const, action: "recolour" as const })),
-  ...FRAMES.map((name) => ({
-    name,
-    group: "frame" as const,
-    action: "recolour" as const,
-    ...(PROTECT[name] ? { protect: PROTECT[name] } : {}),
-    ...(KEEP_ALPHA.has(name) ? { keepAlpha: true } : {}),
-  })),
-  ...PREGAME.map((name) => ({ name, group: "pregame" as const, action: "recolour" as const })),
-  ...CONTROLS.map((name) => ({ name, group: "control" as const, action: "redraw" as const })),
+  ...REDRAWN.map((name) => ({ name, group: groupOf(name), action: "redraw" as const })),
+  ...FLAT_CELLS.map((name) => ({ name, group: "swatch" as const, action: "recolour" as const })),
+  ...ICON_GROUNDS.map((name) => ({ name, group: "icon" as const, action: "recolour" as const, keepAlpha: true })),
 ];
 
 export type ManualClass = "icon" | "picture" | "baked text" | "cursor" | "font" | "content";
@@ -165,7 +54,7 @@ export interface ManualTexture {
 const manual = (cls: ManualClass, why: string, names: string) => names.split(/\s+/).filter(Boolean).map((name) => ({ name, class: cls, why }));
 
 /** The textures in use that the reskin does not change: a person decides (and draws) these. */
-export const MANUAL: ManualTexture[] = [
+const ALL_MANUAL: ManualTexture[] = [
   ...manual(
     "icon",
     "painted icons and button glyphs: a recolour of gold to the accent may do, anything more is new art",
@@ -199,3 +88,6 @@ export const MANUAL: ManualTexture[] = [
     "gui_pal_hair01 gui_pal_skin gui_pal_tattoo gui_pre_bknd1 gui_pre_bknd2 gui_pre_bknd3 gui_saveproxy po_levelup po_pause po_timestop",
   ),
 ];
+
+const THEMED = new Set(AUTO.map((t) => t.name));
+export const MANUAL: ManualTexture[] = ALL_MANUAL.filter((m) => !THEMED.has(m.name));

@@ -12,32 +12,14 @@
  * docs/RESKIN-EVERYTHING.md is the guide.
  */
 import { writeErf } from "../res/erfwrite.js";
-import type { RGBAImage } from "../res/image.js";
 import { ResMan } from "../res/resman.js";
-import { decodeTga } from "../res/tga.js";
 import { type ExportItem, NOTE_RESREF, type SkinFile, type SkinProject, planExport, splitFile } from "../skin/project.js";
-import { type Style, styleTextures } from "../skin/gen/style.js";
+import type { Style } from "../skin/gen/style.js";
 import { type AlphaMode, alphaModeOf, lum } from "./colour.js";
 import type { OutputFormat } from "./compress.js";
 import { hex, paletteFromStyle, parseHex } from "./palette.js";
-import { NUI_PIECES, type NuiPieces } from "./redraw.js";
 import { type Manifest, type ReskinResult, TEXTURE_EXTS, reportMarkdown, reskin } from "./reskin.js";
 import { AUTO, type ManualClass } from "./textures.js";
-
-// --- the skin's pieces ----------------------------------------------------------------------------------------------
-
-/** The NUI pieces the redraws read: the skin's own TGA where it has one, else the generator's. */
-export function nuiPieces(style: Style, own: Record<string, Uint8Array> = {}): NuiPieces {
-  const gen = styleTextures(style);
-  const out: Partial<Record<(typeof NUI_PIECES)[number], RGBAImage>> = {};
-  for (const n of NUI_PIECES) {
-    const file = own[`${n}.tga`];
-    const im = file ? decodeTga(file) : gen.get(n);
-    if (!im) throw new Error(`the skin has no ${n}`);
-    out[n] = im;
-  }
-  return out as NuiPieces;
-}
 
 // --- a light skin ---------------------------------------------------------------------------------------------------
 
@@ -236,8 +218,6 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
   // the NUI skin, as the skin export holds it
   const plan = planExport(p, resman);
   const skinItems = plan.items;
-  const own: Record<string, Uint8Array> = {};
-  for (const [n, f] of Object.entries(p.files)) own[n] = f.data;
 
   let prefix: string | null = null;
   if (o.prefix !== undefined) {
@@ -252,7 +232,6 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
   const alpha = o.alpha ?? alphaModeOf(palette);
   const res = await reskin(resman, {
     palette,
-    nui: nuiPieces(p.style, own),
     skin: { id: p.name, title, from: p.origin.label },
     alpha,
     format: o.format,

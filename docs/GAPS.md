@@ -77,11 +77,6 @@ From the deity window screenshot ([DESIGN.md](../DESIGN.md#checked-against-the-c
 `pnpm old-gui` takes the inventory and runs the checks ([RESKIN-EVERYTHING.md](RESKIN-EVERYTHING.md#the-original-guis-inventory-and-checks)).
 Still open, in the order they are planned:
 
-- **Redraw, not recolour.** The export recolours most chrome, so its coverage and flatness checks fail (145 of 148
-  chrome textures recoloured). To come: chrome redrawn from the skin's colours and pieces (flat faces, one rule, the
-  pressed or selected fill, hover), every state kept in the cells the models read, frames built from separate strips
-  joined, shared cells given one owner, bars that fill, anti-aliased circles for the radial, face colours DXT1 stores
-  exactly.
 - **Previews.** Composites of the real layouts on the client's hook points (the panels the client builds in code laid
   out by hand), lists filled with one selected and one hovered row, bars at 0, 40 and 100 %, `filter 0` textures
   drawn without blending. The fill-bar check already lists the bars these must draw (`FILL_BARS`).

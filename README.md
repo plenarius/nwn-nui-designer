@@ -514,10 +514,10 @@ NWN_ROOT=/path/to/game pnpm check --hak-dir /path/to/hak --module-ifo mymodule.m
 
 A NUI skin restyles only the NUI windows. The game's original windows (character record, inventory, chat,
 quickbar, character select, the creation wizard) are textures of their own, and a theme is complete only when both
-match. **Export full theme** does both in one step: the NUI skin, and the original GUI's textures retoned to match it
-from your own install (fills, rules, pressed and hover from the skin's palette; the old scrollbar and slider redrawn
-from the skin's NUI pieces), every file checked (layout, alpha, row order, every rule and divider still visible) and
-compressed to DDS where that is good enough.
+match. **Export full theme** does both in one step: the NUI skin, and the original GUI's chrome redrawn from your own
+install in the skin's colours (flat faces, one rule, the pressed fill and the hover glow, every state where its model
+reads it; bars that fill, anti-aliased radial circles), every file checked and compressed to DDS where that is good
+enough.
 
 ```bash
 NWN_ROOT=/path/to/game pnpm export-theme bronze -o ~/themes/bronze --out-hak bronze_theme
@@ -528,7 +528,7 @@ NWN_ROOT=/path/to/game pnpm export-theme bronze -o ~/themes/bronze --out-hak bro
 Or in the skin editor: **Export skin** (Ctrl+E) → **Full theme** → **Build the theme**, then download the zip.
 
 - **Output A**, `stock/` (and `--out-hak`): everything under the stock names. Put it in a hak (or an override
-  folder) and every window has the look. Bronze: 220 files, a 6.9 MB hak.
+  folder) and every window has the look. Ink and brass with the game alone: 332 files.
 - **Output B**, `prefixed/` (with `--prefix`): the same files under a one- or two-character prefix, and
   `prefixed.json`, the map a server uses to switch one player (`SetTextureOverride` per texture, and a ResMan
   override of `nui_skin` for the skin).
@@ -542,8 +542,7 @@ retone works: [docs/RESKIN-EVERYTHING.md](docs/RESKIN-EVERYTHING.md). (`pnpm res
 
 `pnpm old-gui inventory` lists every texture the original GUI can draw in your game and haks, with its role, and
 `pnpm old-gui check` holds a theme to it: every drawn chrome texture redrawn (not recoloured), flat faces, every bar
-that fills previewed, the old GUI's fonts replaced as a set. The export still recolours most chrome, so these checks
-fail on it for now ([docs/GAPS.md](docs/GAPS.md#the-original-gui)).
+that fills previewed, the old GUI's fonts replaced as a set. They pass on `export-theme ink`.
 
 ## How close to the client
 
