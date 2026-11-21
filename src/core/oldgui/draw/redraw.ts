@@ -338,9 +338,9 @@ export function copyRect(img: Pic, src: Pic, r: Rect): void {
 }
 
 /** Panel and frame art: the window fill, each stock rule one 1 px rule where the stock draws it. */
-export function redrawTrace(st: Pic, s: OldGuiStyle, alpha: (a: number) => number, protect?: Rect, uv: readonly UvEntry[] = []): Pic {
+export function redrawTrace(st: Pic, s: OldGuiStyle, alpha: (a: number) => number, protect?: Rect): Pic {
   const { w, h } = st;
-  const { core } = ruleCores(st, 24, 9, readMask(uv, w, h));
+  const { core } = ruleCores(st);
   const img = pic(w, h, s.panel);
   for (let i = 0; i < w * h; i++) {
     const sa = st.d[i * 4 + 3]!;
@@ -349,25 +349,6 @@ export function redrawTrace(st: Pic, s: OldGuiStyle, alpha: (a: number) => numbe
   }
   if (protect) copyRect(img, st, protect);
   return img;
-}
-
-/** The texels some model reads (its UV rectangles inside the texture). */
-export function readMask(uv: readonly UvEntry[], w: number, h: number): Mask {
-  const m = mask(w, h);
-  for (const e of uv) {
-    let [u0, v0, u1, v1] = e.rect;
-    if (u1 - u0 > 1.01 || v1 - v0 > 1.01) continue;
-    // a rect past the texture's edge reads it wrapped
-    const fu = Math.floor(u0 + 1e-6);
-    const fv = Math.floor(v0 + 1e-6);
-    [u0, u1, v0, v1] = [u0 - fu, u1 - fu, v0 - fv, v1 - fv];
-    const x0 = Math.max(0, Math.floor(u0 * w));
-    const x1 = Math.min(w, Math.ceil(u1 * w));
-    const y0 = Math.max(0, Math.floor((1 - v1) * h));
-    const y1 = Math.min(h, Math.ceil((1 - v0) * h));
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) m[y * w + x] = 1;
-  }
-  return m;
 }
 
 /** Alpha cut-outs: the shape filled flat, a rule along its edge. */

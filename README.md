@@ -542,7 +542,10 @@ retone works: [docs/RESKIN-EVERYTHING.md](docs/RESKIN-EVERYTHING.md). (`pnpm res
 
 `pnpm old-gui inventory` lists every texture the original GUI can draw in your game and haks, with its role, and
 `pnpm old-gui check` holds a theme to it: every drawn chrome texture redrawn (not recoloured), flat faces, every bar
-that fills previewed, the old GUI's fonts replaced as a set. They pass on `export-theme ink`.
+that fills previewed, the old GUI's fonts replaced as a set. They pass on `export-theme ink`. `pnpm old-gui previews` draws every screen of
+the original GUI from your game, stock beside the theme (every `.gui` layout, the panels the client builds in code on
+their hooks, lists with a selected and a hovered row, every bar at 0, 40 and 100 %), and checks the theme's frames
+against the stock's: lines that vanish, stray lines, breaks, one-pixel steps and stubs.
 
 ## How close to the client
 

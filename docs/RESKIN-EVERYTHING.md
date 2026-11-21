@@ -16,6 +16,7 @@ Contents: [Prerequisites](#prerequisites) · [Export the full theme](#export-the
 [What it writes](#what-it-writes) · [Output A: one theme for everyone](#output-a-one-theme-for-everyone) ·
 [Per-player themes (output B)](#per-player-themes-output-b) · [The report](#the-report) ·
 [The original GUI's inventory and checks](#the-original-guis-inventory-and-checks) ·
+[Previews and the frame check](#previews-and-the-frame-check) ·
 [What goes wrong in game](#what-goes-wrong-in-game) · [Fonts](#the-original-guis-fonts) ·
 [Check and test](#check-and-test) · [Checklist](#checklist-the-theme-is-complete) ·
 [Appendix: how it works](#appendix-how-it-works)
@@ -258,6 +259,48 @@ On `export-theme ink` every check passes: coverage 148 of 148 redrawn, flatness 
 chrome and the flat cells), with the game alone (EE 8193.37). Before the redraw, coverage failed on 145 of the 148
 (recoloured) and flatness on 52 of 97.
 
+### Previews and the frame check
+
+Textures alone don't show a theme: the old GUI builds its windows from many pieces of many textures. `pnpm old-gui
+previews` draws every screen from your game, stock beside the theme, with the models at their places and states:
+
+```bash
+NWN_ROOT=/path/to/game pnpm old-gui previews -o ~/themes/mytheme/previews --theme ~/themes/mytheme/export
+```
+
+- **Every `.gui` layout**, as the client places it: each object's model on its parent's hook, one button pressed
+  and the next hovered, lists filled with sample rows (the first selected, the second hovered) and their scrollbar,
+  labels with their text from the game's string table, in the game's own font.
+- **The panels the client builds in code**, laid out by hand on their models' hooks: the Character Record, the
+  inventory with its equipment page and item cells, the store with its tabs, the spellbook and Memorize Spells with
+  their level medallions and spell icons, the journal, character select with its tabs, its checkbox in each state,
+  and the Player List filled (its icon buttons in each state, rows with their attitude buttons).
+- **Every bar the client fills** at 0, 40 and 100 % (the load and rest bars, the player's and a party member's
+  health): the renderer mixes the `percentage` animation's first and last frame, as the client sets its time.
+- **Sampled as the game does**: a texture whose txi says `filter 0` is drawn without blending (each pixel takes the
+  texel it falls in), a clamped axis repeats its edge texel.
+- The panels with no layout and no hand layout (chat, dialogue, quickbar, party bar, the radial menu, the DM bar, ...)
+  are drawn with what sits on their hooks.
+
+Approximate where the client decides in code: the number of rows and their texts, which tab is selected, the
+scrollbar thumb's length, each label's font size and exact place.
+
+Each screen gets `screen_<key>.png` (stock | theme) and `frames_<key>.png`, the **frame check**: both drawn without
+text, and their rules (thin lines clearly brighter than the fill around them) compared where the two differ:
+
+| Finding | What it is |
+|---|---|
+| missing | a stock rule with no theme rule within 6 px: a frame line that vanished |
+| stray | a theme rule with no stock rule within 6 px: a line the stock does not draw (the hover glow excepted) |
+| ends | a theme line that stops 3-7 px short of where the stock's goes on (a break, or a step to another row), or that jogs one pixel to the side where the stock's runs straight |
+| stubs | a theme stub of 1-4 px standing off a line where the stock draws no line across (a separator's end cut into a frame's edge piece: a dot or tick on the frame) |
+
+The overlay shows stock rules blue, theme rules brass, missing red, stray green, ends as white boxes and stubs as
+magenta rings; `frames.txt` lists every screen. The same check runs in `pnpm old-gui check ... --frames` (it reads
+the game; `--frames-out DIR` writes the overlays). Its findings are listed **to look at, not failed**: a doubled
+stock rule drawn as one, a faint stock separator drawn as a visible rule, and a rule dropped on purpose because a
+stretched cell shares its texels (below) are by design. Every other one is a fault to fix.
+
 ## What goes wrong in game
 
 What a theme of the original GUI has to get right, each learnt from a fault seen in game:
@@ -276,7 +319,11 @@ What a theme of the original GUI has to get right, each learnt from a fault seen
   same rows as its neighbours.
 - **Stretched cells.** The colour-cell strips (`gui_boxes*`) are stretched 20 to 200 times over panels. Filtering
   reads half a texel past each end of a span, so a rule next to a stretched cell turns into a soft band or a fade at
-  the ends of a row. A stretched cell must be one colour along its stretch.
+  the ends of a row. A stretched cell must be one colour along its stretch. A frame's rule that a cell stretched at
+  most 12 times reaches only at its very end stays (a soft edge of 6 px at most); where a cell stretched further
+  reads it, the rule goes. So the strip cells some tables tile for their row separators (the Character Record's
+  ability grid and page lines, the server list) lose them: the same cells are the fill of chat windows and store
+  pages, which would show the rule as a glow along their edges. The frame check lists these as missing lines.
 - **Shared cells have one owner.** One strip of `gui_boxes_ingame` (columns 224-227) is the rows of the spell tree,
   the spell boxes, the journal's quests, the Player List and the store, and the loot window stretches it too. The
   texture is not filtered (`filter 0`), and each row is drawn from half a texel inside the strip's first row to half
@@ -328,10 +375,13 @@ own, so replacing it changes those NUI windows too.
    ([The original GUI's inventory and checks](#the-original-guis-inventory-and-checks)). Settle every failure.
 2. **Read `report.md`.** Settle every failed check (redraw the texture by hand, or leave it out of the hak) and every
    texture left to a person (keep it, recolour it by hand, or draw new art).
-3. **Open each `contact-*.png`.** For every texture: button atlases keep their three frames (up, down, hover) at
+3. **Run `pnpm old-gui previews`** and look at every screen and its frame check
+   ([Previews and the frame check](#previews-and-the-frame-check)): frames closed, no line that vanished or stops
+   short, no stray dot on a frame, the selected and hovered rows, every bar at 0, 40 and 100 %.
+4. **Open each `contact-*.png`.** For every texture: button atlases keep their three frames (up, down, hover) at
    their places, up the skin's button, down the pressed colour, hover the glow; thin rules read as the accent, not lost
    in the fill; red, green and blue signal cells stay as they were.
-4. **Test in the game**: the `development/` folder for a quick look (not `override/`: it loses to the server's
+5. **Test in the game**: the `development/` folder for a quick look (not `override/`: it loses to the server's
    NWSync haks), then the hak in the module as players get it.
    Check character select and the creation wizard too (a hak reaches them once the player has connected), and, for
    output B, switch a player to the prefixed theme and back.
@@ -344,6 +394,7 @@ own, so replacing it changes those NUI windows too.
 - [ ] `pnpm export-theme` (or Full theme in the editor) ran from it with exit code 0, or every failed check in
       `report.md` was looked at and settled.
 - [ ] A light skin's warning was read, and every window tried with it in the game.
+- [ ] Every preview and its frame check was looked at (`pnpm old-gui previews`), and every finding settled.
 - [ ] Every contact sheet was looked at: states in place, rules visible, signals kept.
 - [ ] Every texture in `report.md`'s "Left to a person" was decided: kept, recoloured or redrawn.
 - [ ] In the game, with the hak: character select (vault), module list, the creation wizard (every page), the

@@ -77,11 +77,14 @@ From the deity window screenshot ([DESIGN.md](../DESIGN.md#checked-against-the-c
 `pnpm old-gui` takes the inventory and runs the checks ([RESKIN-EVERYTHING.md](RESKIN-EVERYTHING.md#the-original-guis-inventory-and-checks)).
 Still open, in the order they are planned:
 
-- **Previews.** Composites of the real layouts on the client's hook points (the panels the client builds in code laid
-  out by hand), lists filled with one selected and one hovered row, bars at 0, 40 and 100 %, `filter 0` textures
-  drawn without blending. The fill-bar check already lists the bars these must draw (`FILL_BARS`).
-- **Frame continuity check.** Stock against theme on every composite: lines that vanish, stray lines, lines that
-  stop where the stock's go on, one-pixel steps and 1-4 px stubs. Needs the previews.
+- **Previews are approximate where the client decides in code**: the number of list rows and their texts, which tab
+  is selected, the scrollbar thumb's length, and each label's font size and place. The panels with no layout and no
+  hand layout (chat, dialogue, quickbar, party bar, radial menu, DM bar) show only what sits on their hooks.
+- **The frame check lists, it does not fail**: some findings are by design (a doubled stock rule drawn as one, a
+  separator a stretched cell drops), so a person reads them. It takes a few seconds a screen (about 150 screens).
+- **Lines dropped with shared stretched cells**: the Character Record's ability grid and page lines, and the server
+  list's row separators, share texels with cells big panels stretch, so the redraw drops them (as the reference
+  redraw does).
 - **Fonts.** Exporting the skin's font as `fnt_maintext`, `fnt_default` and `fnt_default_hr` (an option). The check
   of a partial set is in.
 - **The editor.** The inventory and the checks are command-line only.

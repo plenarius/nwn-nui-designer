@@ -4,7 +4,9 @@
  *
  *   pnpm old-gui inventory -o DIR [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks] [--client FILE]
  *                          [--roles FILE]
- *   pnpm old-gui check DIR [--theme DIR] [--skin SKIN] [--json]
+ *   pnpm old-gui check DIR [--theme DIR] [--skin SKIN] [--json] [--frames [--game DIR] [--frames-out DIR]]
+ *   pnpm old-gui previews -o DIR --theme DIR [--skin SKIN] [--only KEY,...] [--game DIR] [--hak FILE]...
+ *                         [--override DIR]... [--no-haks]
  *
  * inventory  reads every GUI model, every .gui layout, the txi links and the client's built-in names from your game
  *            and haks (as `pnpm reskin` reads them), gives every texture a role, and writes into DIR:
@@ -26,11 +28,26 @@
  *            Without --theme only the first, third and fourth run. --skin SKIN: the skin the theme was made from
  *            (its light fills are allowed as faces; else the export's manifest beside the theme says). --json: the
  *            results as JSON.
+ *              frames      with --frames (reads your game: --game, else $NWN_ROOT, else nui-designer.ini): every
+ *                          screen drawn stock and themed, and its rules compared: lines that vanish, stray lines,
+ *                          lines that stop or step where the stock's go on, 1-4 px stubs. Listed for a look, not
+ *                          failed: a doubled stock rule drawn as one, or a rule a stretched cell drops on purpose, is
+ *                          by design. --frames-out DIR: an overlay per screen (stock rules blue, theme brass,
+ *                          missing red, stray green, ends white boxes, stubs magenta).
+ *
+ * previews   draws every screen of the original GUI from your game, stock beside the theme (--theme: the textures
+ *            under their stock names, as for check): every .gui layout; the panels the client builds in code laid
+ *            out on their hooks (Character Record, inventory, store, spellbook, journal, character select, the
+ *            Player List filled); lists with the first row selected and the second hovered, with their scrollbar;
+ *            every bar the client fills at 0, 40 and 100 %. Textures with filter 0 in their txi are drawn without
+ *            blending, clamped ones clamped. Writes DIR/screen_<key>.png, the frame check's overlays
+ *            DIR/frames_<key>.png and DIR/frames.txt. The pictures are your game's art: DIR may not be in this
+ *            repository (except local/).
  *
  * Exit code: 0 when everything passes, 1 when a check fails, 2 on a usage error.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import { errorText } from "../core/errors.js";
 import { clientNames, collectOldGui } from "../core/oldgui/collect.js";
@@ -41,8 +58,12 @@ import { SkinChoiceError, chooseSkin } from "./openskin.js";
 import { lightFills } from "../core/oldgui/checks.js";
 import { type CheckPalette, runChecks } from "./oldguicheck.js";
 import { findClient } from "./oldguiclient.js";
+import { oldGuiStyle } from "../core/oldgui/draw/index.js";
+import { parseHex } from "../core/reskin/palette.js";
+import { frameCheck, previewPair, previewWorld } from "./oldguipreview.js";
 
-const USAGE = "pnpm old-gui inventory -o DIR [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks] [--client FILE] [--roles FILE] | pnpm old-gui check DIR [--theme DIR] [--skin SKIN] [--json]";
+const USAGE =
+  "pnpm old-gui inventory -o DIR [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks] [--client FILE] [--roles FILE] | pnpm old-gui check DIR [--theme DIR] [--skin SKIN] [--json] [--frames [--game DIR] [--frames-out DIR]] | pnpm old-gui previews -o DIR --theme DIR [--skin SKIN] [--only KEY,...] [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks]";
 
 async function inventory(args: string[]): Promise<number> {
   const { values: a } = parseArgs({
@@ -85,19 +106,111 @@ async function inventory(args: string[]): Promise<number> {
 }
 
 async function check(args: string[]): Promise<number> {
-  const { values: a, positionals } = parseArgs({ args, allowPositionals: true, options: { theme: { type: "string" }, skin: { type: "string" }, json: { type: "boolean" } } });
+  const { values: a, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { theme: { type: "string" }, skin: { type: "string" }, json: { type: "boolean" }, frames: { type: "boolean" }, game: { type: "string" }, "frames-out": { type: "string" } },
+  });
   const dir = positionals[0];
   if (!dir || positionals.length > 1) throw new UsageError(`one inventory folder; usage: ${USAGE}`);
   if (!existsSync(join(dir, "old-gui-inventory.tsv"))) throw new UsageError(`${dir}: no old-gui-inventory.tsv (run pnpm old-gui inventory -o ${dir} first)`);
+  if ((a.game || a["frames-out"]) && !a.frames) throw new UsageError("--game and --frames-out go with --frames");
+  if (a["frames-out"]) checkOutDir(a["frames-out"]);
   let pal: CheckPalette | null = null;
+  let glow: number[] | null = null;
   if (a.skin) {
     const p = paletteFromStyle(chooseSkin(a.skin).style);
     pal = { ink: p.ink, allowed: lightFills(p) };
+    glow = oldGuiStyle(p).glow;
   }
   const r = await runChecks(dir, a.theme ?? null, pal);
+  if (a.frames) {
+    if (!r.theme) throw new UsageError("--frames needs a theme folder (--theme DIR)");
+    const { game, resman } = await stockResources({ game: a.game, noHaks: true });
+    const w = await previewWorld(resman, game);
+    glow ??= r.glow ?? [240, 204, 130];
+    const out = a["frames-out"];
+    if (out) mkdirSync(out, { recursive: true });
+    const lines = frameCheck(w, w.theme(r.theme), glow, null, out ? (k, png) => writeFileSync(join(out, `frames_${k}.png`), png) : undefined, (i, n, k) => {
+      if (process.stdout.isTTY) process.stdout.write(`\r  frames: ${i}/${n} ${k}\x1b[K`);
+    });
+    if (process.stdout.isTTY) process.stdout.write("\r\x1b[K");
+    const look = lines.filter((l) => l.missing + l.stray + l.ends + l.spurs);
+    for (const l of look) r.lines.splice(r.lines.length - 1, 0, `look  frames: ${l.key}: missing ${l.missing}, stray ${l.stray}, ends ${l.ends}, stubs ${l.spurs} (${l.where})`);
+    r.lines.splice(r.lines.length - 1, 0, `frames: ${lines.length} screens drawn, ${look.length} with lines to look at${out ? ` (overlays in ${out})` : ""}`);
+    r.frames = lines;
+  }
   if (a.json) console.log(JSON.stringify(r, null, 1));
   else for (const line of r.lines) console.log(line);
   return r.failures ? 1 : 0;
+}
+
+async function previews(args: string[]): Promise<number> {
+  const { values: a } = parseArgs({
+    args,
+    options: {
+      out: { type: "string", short: "o" },
+      theme: { type: "string" },
+      skin: { type: "string" },
+      only: { type: "string" },
+      game: { type: "string" },
+      hak: { type: "string", multiple: true },
+      override: { type: "string", multiple: true },
+      "no-haks": { type: "boolean" },
+    },
+  });
+  if (!a.out || !a.theme) throw new UsageError(`-o DIR and --theme DIR are required; usage: ${USAGE}`);
+  checkOutDir(a.out);
+  let theme = a.theme;
+  if (!readdirSync(theme).some((f) => /\.(dds|tga)$/i.test(f)) && existsSync(join(theme, "stock"))) theme = join(theme, "stock");
+  const { game, resman } = await stockResources({ game: a.game, haks: a.hak, overrides: a.override, noHaks: a["no-haks"] });
+  const w = await previewWorld(resman, game);
+  let glow: readonly number[] = [240, 204, 130];
+  if (a.skin) glow = oldGuiStyle(paletteFromStyle(chooseSkin(a.skin).style)).glow;
+  else {
+    const g = manifestGlow(theme);
+    if (g) glow = g;
+  }
+  const only = a.only ? a.only.split(",").map((x) => x.trim()).filter(Boolean) : null;
+  const screens = w.screens.all().filter((s) => !only || only.includes(s.key));
+  if (only) {
+    const unknown = only.filter((k) => !screens.some((s) => s.key === k));
+    if (unknown.length) throw new UsageError(`no such screen: ${unknown.join(", ")}`);
+  }
+  mkdirSync(a.out, { recursive: true });
+  const tex = w.theme(theme);
+  const lines = frameCheck(
+    w,
+    tex,
+    glow,
+    screens.map((s) => s.key),
+    (k, png) => writeFileSync(join(a.out!, `frames_${k}.png`), png),
+    (i, n, k) => {
+      if (process.stdout.isTTY) process.stdout.write(`\r  ${i}/${n} ${k}\x1b[K`);
+    },
+    (k, d) => writeFileSync(join(a.out!, `screen_${k}.png`), previewPair(w, d, tex, screens.find((s) => s.key === k)!.title)),
+  );
+  const report = lines.map((l) => `${l.key}\t${l.missing + l.stray + l.ends + l.spurs ? "look" : "ok"}\tmissing ${l.missing}\tstray ${l.stray}\tends ${l.ends}\tstubs ${l.spurs}\t${l.where}`);
+  if (process.stdout.isTTY) process.stdout.write("\r\x1b[K");
+  writeFileSync(join(a.out, "frames.txt"), `${report.join("\n")}\n`);
+  const look = report.filter((r) => r.split("\t")[1] === "look").length;
+  console.log(`${screens.length} screens in ${a.out} (screen_*.png stock beside the theme, frames_*.png the frame check); ${look} with lines to look at (frames.txt)`);
+  return 0;
+}
+
+/** The theme's hover glow, from the export's manifest beside the theme folder. */
+function manifestGlow(theme: string): number[] | null {
+  for (const d of [theme, dirname(theme)]) {
+    const p = join(d, "reskin-manifest.json");
+    if (!existsSync(p)) continue;
+    try {
+      const m = JSON.parse(readFileSync(p, "utf8")) as { palette?: Record<string, string> };
+      if (m.palette?.glow) return parseHex(m.palette.glow).slice(0, 3);
+    } catch {
+      // not ours
+    }
+  }
+  return null;
 }
 
 async function main(): Promise<number> {
@@ -112,6 +225,7 @@ async function main(): Promise<number> {
     return inventory(rest);
   }
   if (cmd === "check") return check(rest);
+  if (cmd === "previews") return previews(rest);
   throw new UsageError(`unknown command ${cmd}; usage: ${USAGE}`);
 }
 

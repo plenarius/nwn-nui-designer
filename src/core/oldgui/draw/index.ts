@@ -43,7 +43,7 @@ export function redrawOldGui(o: RedrawInput): RGBAImage | null {
   else if (SWATCH.includes(name)) img = redrawSwatch(name, st, uv, s, alpha);
   else if (BUTTON_ATLAS.includes(name)) img = redrawAtlas(st, uv, s, alpha);
   else if (SHAPE.includes(name)) img = redrawShape(st, s);
-  else if (PANEL.includes(name)) img = redrawTrace(st, s, alpha, PICTURES[name], uv);
+  else if (PANEL.includes(name)) img = redrawTrace(st, s, alpha, PICTURES[name]);
   else return null;
   if (HARD_SHADOW.has(name)) {
     let mx = 0;

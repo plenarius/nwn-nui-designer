@@ -2,7 +2,7 @@
  * The old GUI's small controls, bars, tabs, radial pieces and the Player List's frame atlas, drawn by hand in the
  * skin's style at the stock size and layout. The texel positions are the stock models' (their UVs), not art.
  */
-import type { UvEntry } from "../cells.js";
+import { type UvEntry, cellsFor } from "../cells.js";
 import { ICONS } from "../roles.js";
 import { type Pic, type RGB, clonePic, fillRect, lumOf, pic, ring, setA, setRgb } from "./raster.js";
 import { copyRect, redrawRegions, redrawShape, redrawTrace } from "./redraw.js";
@@ -257,8 +257,8 @@ const loadstatus: Hand = (st, s) => {
 
 /** 128x64, the rest popup (rows 0-59) and its bar: a 14-texel cell of row 62 turned on its side and stretched with the
  * percentage, so its columns are the bar's height: a flat band (x 2-13) on the panel's ink. */
-const resting: Hand = (st, s, { uv, alpha }) => {
-  const img = redrawTrace(st, s, alpha, undefined, uv);
+const resting: Hand = (st, s, { alpha }) => {
+  const img = redrawTrace(st, s, alpha);
   fillRect(img, 0, 60, img.w, img.h, [0, 0, 0]);
   fillRect(img, 0, 60, 14, img.h, s.panel);
   fillRect(img, 2, 60, 14, img.h, s.line);
@@ -505,13 +505,12 @@ const radialmenu: Hand = (st, s, { uv }) => {
   const img = redrawShape(st, s);
   const others: Rect[] = [];
   const subs: Rect[] = [];
-  for (const e of uv) {
-    const [u0, v0, u1, v1] = e.rect;
-    const r: Rect = [u0 * st.w, (1 - v1) * st.h, u1 * st.w, (1 - v0) * st.h];
-    const ref = `${e.model}/${e.node}`;
-    if (/circle56|circle112|spl_plain/.test(ref)) continue;
+  for (const c of cellsFor(uv, st.w, st.h)) {
+    const refs = c.slice(6) as string[];
+    if (refs.some((r) => /circle56|circle112|spl_plain/.test(r))) continue;
+    const r: Rect = [c[0], c[1], c[2], c[3]];
     others.push(r);
-    if (ref.includes("multisub")) subs.push(r.map(Math.trunc) as Rect);
+    if (refs.some((x) => x.includes("multisub"))) subs.push(r.map(Math.trunc) as Rect);
   }
   // the stock's ninth circle cell (no model reads it): kept whole
   others.push([105, 88, 127, 110]);

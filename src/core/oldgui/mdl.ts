@@ -11,6 +11,15 @@ export class MdlError extends Error {}
 
 export type Vec2 = [number, number];
 export type Vec3 = [number, number, number];
+export type Quat = [number, number, number, number];
+
+/** An axis and angle (radians) as a unit quaternion [x, y, z, w]. */
+export function axisAngleQuat(x: number, y: number, z: number, a: number): Quat {
+  const n = Math.hypot(x, y, z);
+  if (n < 1e-12 || Math.abs(a) < 1e-12) return [0, 0, 0, 1];
+  const s = Math.sin(a / 2) / n;
+  return [x * s, y * s, z * s, Math.cos(a / 2)];
+}
 
 /** [v0, v1, v2, t0, t1, t2]: a triangle's vertex indices and its texture-vertex indices. */
 export type Face = [number, number, number, number, number, number];
@@ -21,6 +30,10 @@ export interface MdlNode {
   /** "dummy", "trimesh", "animmesh", "danglymesh", "skin", "aabb", "light", "emitter", "reference", "camera". */
   kind: string;
   position: Vec3;
+  /** Rotation as a unit quaternion [x, y, z, w] (ASCII models give an axis and angle; both are read to this). */
+  orientation: Quat;
+  /** The mesh's opacity (1 when it has no alpha). */
+  alpha: number;
   /** Lower case; null for a node with no texture (or "null"). */
   bitmap: string | null;
   render: boolean;
@@ -41,7 +54,8 @@ export interface AnimNode {
   verts?: Vec3[];
   bitmap?: string;
   sampleperiod?: number;
-  /** Controller keys by name ("positionkey", "alphakey", ...): rows of [time, ...values]. */
+  /** Controller keys by name ("positionkey", "alphakey", ...): rows of [time, ...values]; orientationkey rows are
+   * [time, x, y, z, w] quaternions in both formats. */
   keys: Record<string, number[][]>;
 }
 
@@ -217,11 +231,14 @@ function readBinary(bytes: Uint8Array): Mdl {
   walk(root, null, (o, nm, parent, flags) => {
     const keys = controllers(o, (flags & NF_MESH) !== 0);
     const pos = keys.positionkey?.[0];
+    const ori = keys.orientationkey?.[0];
     const node: MdlNode = {
       name: nm,
       parent,
       kind: kindOf(flags),
       position: pos ? [pos[1] ?? 0, pos[2] ?? 0, pos[3] ?? 0] : [0, 0, 0],
+      orientation: ori && ori.length >= 5 ? [ori[1]!, ori[2]!, ori[3]!, ori[4]!] : [0, 0, 0, 1],
+      alpha: keys.alphakey?.[0]?.[1] ?? 1,
       bitmap: null,
       render: true,
       transparencyHint: 0,
@@ -333,6 +350,8 @@ function readAscii(text: string): Mdl {
           parent: null,
           kind: (t[1] ?? "").toLowerCase(),
           position: [0, 0, 0],
+          orientation: [0, 0, 0, 1],
+          alpha: 1,
           bitmap: null,
           render: true,
           transparencyHint: 0,
@@ -355,7 +374,9 @@ function readAscii(text: string): Mdl {
       } else if (k === "faces" || k === "normals" || k === "colors" || k === "tangents") {
         block(num(t[1]));
       } else if (k.endsWith("key")) {
-        anode.keys[k] = keyRows(t);
+        const rows = keyRows(t);
+        // ASCII orientation keys are an axis and an angle: read as quaternions, as the binary stores them
+        anode.keys[k] = k === "orientationkey" ? rows.map((r) => [r[0] ?? 0, ...axisAngleQuat(r[1] ?? 0, r[2] ?? 0, r[3] ?? 0, r[4] ?? 0)]) : rows;
       } else if (k === "sampleperiod") {
         anode.sampleperiod = num(t[1]);
       } else if (k === "bitmap" || k === "texture0") {
@@ -366,6 +387,8 @@ function readAscii(text: string): Mdl {
         const p = (t[1] ?? "").toLowerCase();
         node.parent = p && p !== "null" ? p : null;
       } else if (k === "position") node.position = [num(t[1]), num(t[2]), num(t[3])];
+      else if (k === "orientation") node.orientation = axisAngleQuat(num(t[1]), num(t[2]), num(t[3]), num(t[4]));
+      else if (k === "alpha") node.alpha = num(t[1]);
       else if (k === "bitmap" || k === "texture0") {
         const b = (t[1] ?? "").toLowerCase();
         node.bitmap = b && b !== "null" ? b : null;

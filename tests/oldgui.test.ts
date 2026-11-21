@@ -98,7 +98,7 @@ describe("cells", () => {
 
   it("counts a rotated strip's stretch along its own axes", () => {
     // a 2 x 100 px quad drawing a 64 x 2 texel strip turned on its side: u runs down the screen
-    const node = { name: "p", kind: "trimesh", bitmap: "t", render: true, transparencyHint: 0, position: [0, 0, 0] as [number, number, number], parent: null, verts: [[0, 0, 0], [0.02, 0, 0], [0, 1, 0], [0.02, 1, 0]] as [number, number, number][], tverts: [[0, 0], [0, 1 / 16], [1, 0], [1, 1 / 16]] as [number, number][], faces: [[0, 1, 2, 0, 1, 2], [3, 2, 1, 3, 2, 1]] as [number, number, number, number, number, number][] };
+    const node = { name: "p", kind: "trimesh", bitmap: "t", render: true, transparencyHint: 0, position: [0, 0, 0] as [number, number, number], orientation: [0, 0, 0, 1] as [number, number, number, number], alpha: 1, parent: null, verts: [[0, 0, 0], [0.02, 0, 0], [0, 1, 0], [0.02, 1, 0]] as [number, number, number][], tverts: [[0, 0], [0, 1 / 16], [1, 0], [1, 1 / 16]] as [number, number][], faces: [[0, 1, 2, 0, 1, 2], [3, 2, 1, 3, 2, 1]] as [number, number, number, number, number, number][] };
     const es = uvEntries({ name: "m", supermodel: null, nodes: [node], anims: new Map(), binary: false }).get("t")!;
     const [c] = cellsFor(es, 64, 32);
     expect(c![4]).toBeCloseTo(100 / 64, 2);

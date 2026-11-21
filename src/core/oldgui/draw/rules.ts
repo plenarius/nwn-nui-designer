@@ -211,11 +211,11 @@ function bandsOf(m: Mask, L: Float32Array, w: number, h: number, axis: 0 | 1, mi
 
 /** The stock's rules as 1 px lines where the stock draws them, joined at corners; and its thick bright blocks.
  * Atlas strips cut from different places of a texture still meet, as their stock rules do. */
-export function ruleCores(st: Pic, thr = 24, minrun = 9, read?: Mask): { core: Mask; thick: Mask } {
+export function ruleCores(st: Pic, thr = 24, minrun = 9): { core: Mask; thick: Mask } {
   const { w, h } = st;
   const { m, L, blue } = lineMask(st, thr);
-  // pure white blocks lie outside every UV (a white outline a model reads is a rule)
-  for (let i = 0; i < w * h; i++) if (blue[i] || (Math.min(st.d[i * 4]!, st.d[i * 4 + 1]!, st.d[i * 4 + 2]!) > 250 && !read?.[i])) m[i] = 0;
+  // pure white blocks lie outside every UV
+  for (let i = 0; i < w * h; i++) if (blue[i] || Math.min(st.d[i * 4]!, st.d[i * 4 + 1]!, st.d[i * 4 + 2]!) > 250) m[i] = 0;
   const thick = opening(m, w, h, 7);
   for (let i = 0; i < w * h; i++) if (thick[i]) m[i] = 0;
   let s = { hs: bandsOf(m, L, w, h, 1, minrun), vs: bandsOf(m, L, w, h, 0, minrun) };

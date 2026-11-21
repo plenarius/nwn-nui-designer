@@ -465,6 +465,10 @@ panel models placed on each other by `.gui` layouts. `pnpm old-gui` and the resk
   or a string reference). The panels the client builds in code (character record, inventory, store, spellbook,
   journal) have no layout: the client places their pieces on their models' hooks itself.
 - **Scale** [data, inferred]: a GUI model is laid out at 100 screen pixels per model unit at UI scale 1.
+- **Placing** [data]: a `.gui` object sits at its parent's hook node plus its `Obj_X` and `Obj_Y`; a node's place is
+  its parents' transforms and its own position and orientation (a quaternion in a compiled model, an axis and angle
+  in an ASCII one). An animation's first position and orientation keys move a node in that state. Some hooks are
+  turned: the rest popup's `status` hook turns its bar on its side, so the bar runs left to right.
 - **Which way up** [tested in game]: a texture's top row is texture v = 1. The client reads a DDS and a TGA alike,
   bottom row first, whatever the TGA's origin flag says.
 - **States** [data]: a control's states are animations of its model (`up`, `down`, `hilite`, `disabled`,
