@@ -169,6 +169,12 @@ export class Key implements Container {
     return this.table.has(resKey(resref, type));
   }
 
+  /** The BIF a resource is in ("data/aurora_gui.bif"), or null. */
+  bifOf(resref: string, type: number): string | null {
+    const e = this.table.get(resKey(resref, type));
+    return e ? (this.bifNames[e[0]] ?? null) : null;
+  }
+
   async get(resref: string, type: number): Promise<Uint8Array | null> {
     const e = this.table.get(resKey(resref, type));
     if (!e) return null;

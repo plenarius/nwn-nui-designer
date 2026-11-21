@@ -15,8 +15,17 @@ person or an agent can follow this guide from start to finish without asking any
 Contents: [Prerequisites](#prerequisites) · [Export the full theme](#export-the-full-theme) ·
 [What it writes](#what-it-writes) · [Output A: one theme for everyone](#output-a-one-theme-for-everyone) ·
 [Per-player themes (output B)](#per-player-themes-output-b) · [The report](#the-report) ·
+[The original GUI's inventory and checks](#the-original-guis-inventory-and-checks) ·
+[What goes wrong in game](#what-goes-wrong-in-game) · [Fonts](#the-original-guis-fonts) ·
 [Check and test](#check-and-test) · [Checklist](#checklist-the-theme-is-complete) ·
 [Appendix: how it works](#appendix-how-it-works)
+
+> **Status.** The export below still **recolours** most of the original GUI's chrome. In game a recolour is not
+> enough: the windows keep the stock bevels, gradients and parchment in the new colours, and some controls break
+> ([What goes wrong in game](#what-goes-wrong-in-game)). `pnpm old-gui` now takes a full inventory of the original
+> GUI from your game and checks a theme against it; its coverage and flatness checks fail on today's export, on
+> purpose. A redraw of the chrome from the skin's own colours replaces the recolour next
+> ([GAPS.md](GAPS.md#the-original-gui)).
 
 ## The rule: no game art in a repository
 
@@ -167,20 +176,173 @@ that hard-code a light text colour instead of taking the skin's (some of the gam
 their own colours) suffer the same way. A light skin's export is otherwise complete and passes its checks; try every
 window in the game before shipping it, or theme the original GUI from a dark skin.
 
+## The original GUI's inventory and checks
+
+`pnpm old-gui` reads every texture the original GUI can draw from **your own game and haks**, gives each one a role,
+and checks a theme against that list. It is how you know a theme is complete, and its checks run in CI without the
+game.
+
+```bash
+# once per game version (and whenever your haks add GUI models or textures):
+NWN_ROOT=/path/to/game pnpm old-gui inventory -o ~/themes/mytheme/inventory
+# then, as often as you like (no game needed; a theme repository can run this in CI):
+pnpm old-gui check ~/themes/mytheme/inventory --theme ~/themes/mytheme/stock
+```
+
+`inventory` takes the same `--game`, `--hak`, `--override` and `--no-haks` as `pnpm reskin`, and:
+
+- `--client FILE`: the game executable to read the client's built-in names from (by default the one in the game's
+  `bin/` folder; the names are needed because the client draws some textures from its code alone, such as the
+  inventory's slot silhouettes and the map's custom pins);
+- `--roles FILE`: your own decisions for textures the built-in tables don't know (see below).
+
+It reads:
+
+- every GUI model, binary or ASCII: the GUI archives' models and every model with a GUI name, as your haks override
+  them, and every model a layout places;
+- every `.gui` layout: the models it places on which hooks, and its labels' fonts;
+- the client's built-in names (its strings), and the families it builds with a number (`ctl_inv_sto_tab%d`,
+  `gui_icon_%dx%d...`, `pnl_mapgen_%dx%d`);
+- every texture a `.txi` names (environment maps and the like), followed until nothing new turns up.
+
+It writes two files, names and numbers only (no art), so a theme's own repository may keep them:
+
+| File | |
+|---|---|
+| `old-gui-inventory.tsv` | one row per texture: `group` (chrome, icon, content, text, cursor, font, scene, none), `kind` (button, panel, edit, tab, cells, scrollbar, slider, checkbox, bar, row, item-cell, radial, shape, ...), `role`, `treatment`, `drawn`, its format and size and where it is read from, its txi (`filter 0`, `mipmap 0`, `clamp 3`), and where it is used: `models`, `layouts`, `client`, `txi_from`, and the controls that read a different cell of it per state |
+| `old-gui-cells.json` | every UV cell the models sample from each drawn texture: the texels, how many screen pixels each texel becomes along each axis (0 when the client resizes it at run time), and which model, node and animation (state) reads it |
+
+**Treatments.** `redraw` (chrome: drawn again in the skin's style), `flat` (chrome that is already flat cells or
+marks), `icon` (kept, or its ground recoloured), `hold` (left for you: content art, baked text and logos, cursors,
+bitmap fonts), `scene` (3D textures of the menu scenes), `missing` (named, but the game has no such file), `unused`
+(in a GUI archive, drawn by nothing).
+
+On the EE 8193.37 game alone: 1620 GUI models, 104 layouts and 1242 textures, 476 of them drawn:
+
+| Treatment | Count |
+|---|---|
+| redraw (chrome) | 148 |
+| flat (chrome already flat) | 18 |
+| icon | 214 |
+| hold (content, baked text, logos, cursors, bitmap fonts) | 64 |
+| scene | 32 |
+| missing | 47 |
+| unused | 719 |
+
+**Your haks.** A texture your haks add that something draws, and that the built-in tables (`src/core/oldgui/roles.ts`)
+don't know, is `uncategorised`, and the check fails until you decide. Write the decision in a roles file and pass it
+with `--roles`:
+
+```json
+{
+ "textures": {
+  "my_gui_frame": { "group": "chrome", "treatment": "redraw", "kind": "panel", "role": "my window's frame" },
+  "my_gui_icons": { "group": "icon", "treatment": "icon", "stateIcon": "the toolbar's icons, on the buttons' own frames" }
+ }
+}
+```
+
+**The checks.** `check DIR` runs on the inventory folder; with `--theme` (a folder of textures under the stock names,
+such as `export-theme`'s `stock/`, or the export folder itself) the rest run too. `--skin SKIN` names the skin the
+theme was made from (else the export's manifest beside the theme says), so its light fills (pressed, accent, glow,
+marks) count as faces on purpose. Exit code 0 when everything passes, 1 when a check fails; `--json` for a machine.
+
+| Check | Fails when |
+|---|---|
+| categories | a drawn texture has no role |
+| coverage | a drawn chrome texture has no file in the theme, or its file was only recoloured (the export's manifest says which); a file under a GUI name the inventory doesn't know |
+| state icons | a texture kept as an icon or held art is read by a control in a different cell per state (normal, hover, pressed, checked) and is not known to hold only icons. A control's state cells are usually its frames: the character-select checkbox draws its box and mark from an atlas of tab icons |
+| fill bars | a bar the client fills (a progress-bar role, or a cell a model draws with its `percentage` animation) has no previews at three levels or more from empty to full |
+| flatness | a chrome face (a region at least 3 texels thick) whose colour spreads over 10 levels (a bevel, ramp, vignette, mottling); a face lighter than the skin's fill that is not one of its light fills; a cell a model draws at 3 or more pixels per texel (or resizes at run time) whose texels change along that axis: filtering spreads any change over the whole stretch. Pictures inside frames, icons in a control's atlas and a few known cases are skipped, each with its reason |
+| fonts | the theme replaces one or two of the old GUI's three font files, not all three ([Fonts](#the-original-guis-fonts)) |
+
+On today's export (Ink and brass), coverage fails on 145 of the 148 chrome textures (recoloured) and flatness on 52
+of the 97 it checks: that is the gap the redraw closes. The same checks pass on a complete hand-made redraw of the
+whole set.
+
+## What goes wrong in game
+
+What a theme of the original GUI has to get right, each learnt from a fault seen in game:
+
+- **A recolour keeps the stock look.** Bevelled double-line frames, the mottled "cloud" on pressed buttons and the
+  selected list row, light scrollbar tracks, vignetted panel fills and parchment faces all survive a recolour in the
+  new colours. Chrome has to be redrawn: flat faces, one rule, the pressed or selected fill, the hover glow, from the
+  skin's own colours.
+- **Every state stays in the cell the model reads.** A button atlas holds its normal, pressed, hover and disabled
+  frames at the places the model's animations point at (`up`, `down`, `hilite`, `disabled`, `checkedup`, ...). A
+  disabled animation may read another state's frame. Some controls draw another control's texture: the old windows'
+  close button `ctl_btn_x` draws `ctl_chk_pre`.
+- **Frames built from separate strips.** Some frames are three or more strips of one texture (a bar's left end,
+  middle and right end), or overlapping pieces of an atlas (the Player List's top row and its "PvP Zone" box). Drawn
+  as one panel, the rules break, step where the pieces meet, or stop short. Each piece must carry its rules on the
+  same rows as its neighbours.
+- **Stretched cells.** The colour-cell strips (`gui_boxes*`) are stretched 20 to 200 times over panels. Filtering
+  reads half a texel past each end of a span, so a rule next to a stretched cell turns into a soft band or a fade at
+  the ends of a row. A stretched cell must be one colour along its stretch.
+- **Shared cells have one owner.** One strip of `gui_boxes_ingame` (columns 224-227) is the rows of the spell tree,
+  the spell boxes, the journal's quests, the Player List and the store, and the loot window stretches it too. The
+  texture is not filtered (`filter 0`), and each row is drawn from half a texel inside the strip's first row to half
+  a texel past its last: a rule on the first row shows at both ends of every row (a doubled line). Its rule belongs
+  on the last row. Other cells of the same texture are the inventory's item outlines and the translucent cell that
+  dims a disabled button: change one and every user changes.
+- **`clamp 3`.** The tab textures' txi clamps both axes, and the tab bodies read far past the texture's last row, so
+  the edge row is stretched over the whole body. A rule on that row is a bright strip under every tab.
+- **Rotated strips.** Some pieces draw a strip turned on its side (the rest bar). Measure a piece's stretch along its
+  own mapping, not the texture's axes; the inventory's cells do.
+- **Bars that fill.** The load and rest bars, and the health bars, grow by a `percentage` animation: a bar redrawn as
+  a panel shows nothing while it fills. Look at every bar at 0, 40 and 100 %.
+- **The radial menu** draws its big disc at 56 and 128 px from the same 112 texels, with no mipmaps: a hard 1-texel
+  rule breaks into dashes and stair-steps. Its circles need anti-aliased alpha and a rim of about 2 texels.
+- **DXT turns dark faces olive.** DXT1 stores two 5:6:5 end colours per 4 x 4 block; a dark warm face that 5:6:5
+  can't hold exactly is stored as a mix that leans green. Pick face colours that 5:6:5 stores exactly (each block then
+  decodes to the face), and snap dark colours to warm 5:6:5 values. The export's DDS encoder fits blocks well, but a
+  face that is not exactly representable still drifts.
+- **Previews must sample as the game does.** `filter 0` textures are drawn without blending (each pixel takes the
+  texel it falls in); filtering them in a preview hides the doubled row rule above.
+
+## The original GUI's fonts
+
+The original GUI does not draw with its bitmap fonts any more. The EE client remaps every font name a `.gui` or its
+code uses to one of three TrueType files:
+
+| File | Draws |
+|---|---|
+| `fnt_maintext` | titles and labels (`fnt_galahad14` and the other title fonts), at about 17 px |
+| `fnt_default` | everything else (`fnt_console`, chat, lists, dialog), at about 14 px |
+| `fnt_default_hr` | dialog and floating text with the large-font option, at about 16 px |
+
+So a theme can give the old windows the NUI skin's font by shipping that font three times, under those three names,
+in a hak (the game's own `.txi` for each name, contrast and outline only, still applies). Replace all three or none:
+the check fails on a partial set. `fnt_maintext` is also the font of a NUI skin entry that names no resref of its
+own, so replacing it changes those NUI windows too.
+
+- **Licence.** Ship only a font whose licence allows it (the built-in skins' fonts are SIL OFL 1.1: ship the licence
+  text beside them), never one of the game's.
+- **Coverage.** A font with Latin-1 only can't draw the rest of a player's code page.
+- **For everyone, not per player.** The client loads its fonts once, so a per-player theme can't switch them:
+  every player on the server gets the hak's fonts, whichever theme they chose.
+- **Testing on your machine.** Put the three files in the game's user `development/` folder. A player's
+  `override/` folder does **not** beat the haks a server sends through NWSync; `development/` does.
+
 ## Check and test
 
-1. **Read `report.md`.** Settle every failed check (redraw the texture by hand, or leave it out of the hak) and every
+1. **Run `pnpm old-gui check`** with the inventory of your game and the theme's `stock/` folder
+   ([The original GUI's inventory and checks](#the-original-guis-inventory-and-checks)). Settle every failure.
+2. **Read `report.md`.** Settle every failed check (redraw the texture by hand, or leave it out of the hak) and every
    texture left to a person (keep it, recolour it by hand, or draw new art).
-2. **Open each `contact-*.png`.** For every texture: button atlases keep their three frames (up, down, hover) at
+3. **Open each `contact-*.png`.** For every texture: button atlases keep their three frames (up, down, hover) at
    their places, up the skin's button, down the pressed colour, hover the glow; thin rules read as the accent, not lost
    in the fill; red, green and blue signal cells stay as they were.
-3. **Test in the game**: the `development/` folder for a quick look, then the hak in the module as players get it.
+4. **Test in the game**: the `development/` folder for a quick look (not `override/`: it loses to the server's
+   NWSync haks), then the hak in the module as players get it.
    Check character select and the creation wizard too (a hak reaches them once the player has connected), and, for
    output B, switch a player to the prefixed theme and back.
 
 ## Checklist: the theme is complete
 
 - [ ] The NUI skin is final.
+- [ ] `pnpm old-gui inventory` ran on the game and haks the players will have, and `pnpm old-gui check` passes on
+      the theme (or every failure was looked at and settled).
 - [ ] `pnpm export-theme` (or Full theme in the editor) ran from it with exit code 0, or every failed check in
       `report.md` was looked at and settled.
 - [ ] A light skin's warning was read, and every window tried with it in the game.
@@ -254,8 +416,9 @@ the hak you are writing with `--out-hak`, which the reskin skips by itself).
 
 ### What the reskin changes
 
-100 textures in four groups (the original GUI's survey: 722 GUI models in use draw 211 textures, 193 of which
-exist; the rest of the in-use ones are in the next section).
+100 textures in four groups. The inventory ([above](#the-original-guis-inventory-and-checks)) counts 148 chrome
+textures to redraw and 18 that are flat already, of 476 drawn: the reskin covers part of them, and recolours most of
+those it covers.
 
 | Group | Count | What they are | How |
 |---|---|---|---|
@@ -298,8 +461,9 @@ it by hand, or draw new art.
 | Bitmap fonts | `fnt_console`, `fnt_floaty_smal`, `fnt_galahad14` | Glyph atlases tied to their `.txi` metrics. |
 | Content | colour pickers (`gui_pal_*`), menu backgrounds, splash and pause art | Not part of the chrome. |
 
-**Not in any texture** (no texture theme can change them): the original GUI's text colours and fonts (`.gui` files,
-the client's code, the `fnt_default*` TTFs), panel geometry and layout (models and `.gui` files: a hak can replace
+**Not in any texture** (no texture theme can change them): the original GUI's text colours (`.gui` files, the
+client's code) and its fonts (the three TrueType files of [Fonts](#the-original-guis-fonts): a hak can replace them,
+for everyone), panel geometry and layout (models and `.gui` files: a hak can replace
 them, for everyone), selection tints and the radial's dimming, portraits and item and spell icons.
 
 To redraw one by hand: work from the stock file (`nwn_resman_cat` or the designer's resources), keep the **name**,
@@ -361,7 +525,8 @@ by side (the character record next to a NUI window of your module).
   (and button states swap). BioWare's DDS has a 20-byte header (width, height, bytes per pixel 3 = DXT1 or 4 = DXT5,
   the first level's size, the mean alpha), then every mip level to 1 x 1; keep all of it.
 - **Texture priority.** The client looks for a texture by location first (development, then NWSync, then haks in
-  hak-list order, then the base game), and only within one location by format (KTX before DDS before TGA). Your hak
+  hak-list order, then the base game; a player's `override/` folder does not beat the server's NWSync haks), and
+  only within one location by format (KTX before DDS before TGA). Your hak
   is a location above the base game, so its DDS or TGA wins over the stock file in either format. Within one
   location, never ship one name as both DDS and TGA (the DDS wins, and any difference between the two is a trap): the
   reskin writes each name in one format only, and removes an older file of the other format from `textures/`. A KTX

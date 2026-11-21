@@ -450,6 +450,8 @@ pnpm skin sheet [DIR] [--game [DIR]] [--theme ID] [-o widgets.png] [--title TEXT
 pnpm skin preset d-iron -o DIR                  # a generator preset's files (not shipped)
 pnpm export-theme SKIN -o DIR [--out-hak NAME] [--prefix P [--prefix-hak NAME]] [--game DIR] [--no-haks]
                                                 # the full theme: the NUI skin and the original GUI (needs the game)
+pnpm old-gui inventory -o DIR [--game DIR]      # every texture the original GUI draws, with its role (needs the game)
+pnpm old-gui check DIR [--theme DIR]            # check a theme of the original GUI against it (no game needed)
 ```
 
 Examples:
@@ -537,6 +539,11 @@ Or in the skin editor: **Export skin** (Ctrl+E) → **Full theme** → **Build t
 The export needs your own game files and stops with a message without them. Its output is derived from the game's
 art: ship it in your module's haks, never in a public repository. The whole guide, per-player themes and how the
 retone works: [docs/RESKIN-EVERYTHING.md](docs/RESKIN-EVERYTHING.md). (`pnpm reskin` writes the original GUI alone.)
+
+`pnpm old-gui inventory` lists every texture the original GUI can draw in your game and haks, with its role, and
+`pnpm old-gui check` holds a theme to it: every drawn chrome texture redrawn (not recoloured), flat faces, every bar
+that fills previewed, the old GUI's fonts replaced as a set. The export still recolours most chrome, so these checks
+fail on it for now ([docs/GAPS.md](docs/GAPS.md#the-original-gui)).
 
 ## How close to the client
 

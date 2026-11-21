@@ -72,6 +72,27 @@ From the deity window screenshot ([DESIGN.md](../DESIGN.md#checked-against-the-c
   group is larger than the solver's extent (by about 45 px on 1320). Needs a second screenshot with another content
   height, or the decompile.
 
+## The original GUI
+
+`pnpm old-gui` takes the inventory and runs the checks ([RESKIN-EVERYTHING.md](RESKIN-EVERYTHING.md#the-original-guis-inventory-and-checks)).
+Still open, in the order they are planned:
+
+- **Redraw, not recolour.** The export recolours most chrome, so its coverage and flatness checks fail (145 of 148
+  chrome textures recoloured). To come: chrome redrawn from the skin's colours and pieces (flat faces, one rule, the
+  pressed or selected fill, hover), every state kept in the cells the models read, frames built from separate strips
+  joined, shared cells given one owner, bars that fill, anti-aliased circles for the radial, face colours DXT1 stores
+  exactly.
+- **Previews.** Composites of the real layouts on the client's hook points (the panels the client builds in code laid
+  out by hand), lists filled with one selected and one hovered row, bars at 0, 40 and 100 %, `filter 0` textures
+  drawn without blending. The fill-bar check already lists the bars these must draw (`FILL_BARS`).
+- **Frame continuity check.** Stock against theme on every composite: lines that vanish, stray lines, lines that
+  stop where the stock's go on, one-pixel steps and 1-4 px stubs. Needs the previews.
+- **Fonts.** Exporting the skin's font as `fnt_maintext`, `fnt_default` and `fnt_default_hr` (an option). The check
+  of a partial set is in.
+- **The editor.** The inventory and the checks are command-line only.
+- **Roles of new textures.** The role tables are the stock 8193.37 client's; a newer client's textures show as
+  uncategorised until someone looks at them.
+
 ## Resources
 
 - **NWSync** manifests and the `E1` formats (ERF E1.0, KEY/BIF E1) are not read.
