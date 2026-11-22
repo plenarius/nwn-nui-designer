@@ -176,13 +176,41 @@ const images: StyleRule = {
   },
 };
 
+/** Every element of a list's row template, the cell's own and any nested in it, with its path. */
+function rowTemplateElems(root: JsonObject, fn: (e: JsonObject, path: ElemPath) => void): void {
+  const rec = (e: JsonObject, path: ElemPath, inRow: boolean) => {
+    if (inRow) fn(e, path);
+    const row = inRow || typeOf(e) === "list";
+    kidsOf(e).forEach((c, i) => rec(c, [...path, i], row));
+  };
+  rec(root, [], false);
+}
+
+const listImage: StyleRule = {
+  id: "mobile-list-image",
+  title: "Image in a list row on iOS",
+  summary: "An image element in a list's row template, as a cell or nested in one, does not draw on iOS and breaks the row's layout: draw the icon with a draw-list image on a spacer instead (NUI-MOBILE-052).",
+  check(ctx, report) {
+    const root = rootOf(ctx);
+    if (!root) return;
+    rowTemplateElems(root, (e, path) => {
+      if (typeOf(e) !== "image") return;
+      report(
+        path,
+        "an image in a list row does not draw on iOS and breaks the row's layout: the rows' other cells run together or overlap (NUI-MOBILE-052). Draw the icon with a draw-list image on a spacer instead (docs/MOBILE.md)",
+        "error",
+      );
+    });
+  },
+};
+
 /** The mobile rule set. Shaped as a style rule set, so the editor lists and turns its rules off the same way. */
 export const MOBILE_RULES: StyleRuleSet = {
   id: MOBILE_SOURCE,
   name: "Mobile clients",
   description: "What breaks on the iOS and Android clients, from the measurements of the nwn-nui-spec (one iPhone at density 3 and one Android tablet).",
   source: SPEC,
-  rules: [margin, centred, thinCell, scaling, images],
+  rules: [margin, centred, thinCell, listImage, scaling, images],
 };
 
 /** The mobile findings of a window, rules in `disabled` left out. */

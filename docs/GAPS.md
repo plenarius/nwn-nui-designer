@@ -174,6 +174,10 @@ From the nwn-nui-spec's measurements ([MOBILE.md](MOBILE.md)): one iPhone at den
   3 x its width (T60). `nui_touch.nss` grows such controls; the preview shows them that much taller.
 - **Bound values** of draw-list coordinates are multiplied in the preview; bound row heights and cell widths do not
   exist (NUI does not bind them).
+- **Images in list rows (`mobile-list-image`, NUI-MOBILE-052)** were measured only as a cell of the row template
+  on iOS. An image nested deeper in a cell (in a row, column or group) is taken to break the same way and is
+  flagged too; Android is not measured (it had none of iOS's layout issues). The preview hides such images on iOS
+  but does not draw the broken row.
 - **`mobile-tga` needs the game**, and checks only static resrefs and bind samples, not resrefs a script picks at
   run time.
 - **Portable margins** keep fixed layouts exactly; where flexible elements share room the solver can settle a

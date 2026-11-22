@@ -4,6 +4,8 @@
  * margin, the default 2 included (NUI-MOBILE-021), each list's row_height (NUI-MOBILE-022), its template's cell
  * widths, never narrower than the drawn minimum (NUI-MOBILE-023, -024), and every draw-list coordinate and size and
  * line thickness (NUI-MOBILE-025; nui_touch.nss divides the thickness too). Sizes, fonts and glyphs stay as they are.
+ * An image in a list's row template is hidden: iOS never draws it (NUI-MOBILE-052; the row's broken layout is not
+ * modelled, the mobile check reports it).
  * The window's position is multiplied by fp = d / s instead (preview.ts). The renderer does the rest (the window position, the list inset and row spacing, the
  * frame: render.ts, RenderClient), so the desktop path is never touched.
  *
@@ -85,11 +87,12 @@ function transform(win: JsonObject, p: ClientProfile): Transformed {
     return o;
   };
 
-  const elem = (e: JsonObject): JsonObject => {
+  const elem = (e: JsonObject, inRow = false): JsonObject => {
     const o: JsonObject = { ...e };
+    if (inRow && e.type === "image") o.visible = false;
     const m = marginOf(e);
     if (m > 0) o.margin = m * f;
-    if (Array.isArray(e.children)) o.children = e.children.map((c) => (isObject(c) ? elem(c) : c));
+    if (Array.isArray(e.children)) o.children = e.children.map((c) => (isObject(c) ? elem(c, inRow) : c));
     if (Array.isArray(e.draw_list)) o.draw_list = e.draw_list.map(item);
     if (e.type === "list") {
       o.row_height = (typeof e.row_height === "number" ? e.row_height : DEFAULT_ROW_HEIGHT) * f;
@@ -98,7 +101,7 @@ function transform(win: JsonObject, p: ClientProfile): Transformed {
           if (!Array.isArray(c) || !c.length || !isObject(c[0])) return c;
           const w = typeof c[1] === "number" ? c[1] : 0;
           const cell: JsonValue[] = [...c];
-          cell[0] = elem(c[0]);
+          cell[0] = elem(c[0], true);
           if (c.length > 1) cell[1] = Math.max(w * f, p.minCell);
           return cell;
         });

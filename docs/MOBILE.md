@@ -32,6 +32,9 @@ measured: the designer scales its numbers from the density-3 ones (below).
 - **The frame and a bordered list's inset are bigger** on iOS, fixed in screen pixels (NUI-MOBILE-030, -033).
 - **Base-game images that exist only as TGA draw black** in NUI on iOS and Android (portraits, spell and feat
   icons, many item icons); a hak copy draws (NUI-MOBILE-050, -051).
+- **An image element in a list row does not draw on iOS**, and the row's other cells are laid out wrongly (the text
+  of consecutive rows runs together or overlaps), bound or fixed, scaled or not (NUI-MOBILE-052, measured on an
+  iPhone at GUI scale 1.6; not yet in the spec). A draw-list image on a spacer draws (below).
 - **Android lays windows out as the desktop does**, and reports a GUI scale of 0, which means 1.0 (NUI-MOBILE-040).
 - **A script cannot ask** which client it talks to: an iPhone reports the platform of an Apple-silicon Mac, and no
   device property tells (NUI-MOBILE-001, -002). It can measure: the density probe (NUI-MOBILE-010).
@@ -49,8 +52,27 @@ The **Mobile checks** button in the toolbar turns them on (they are always on wh
 | `mobile-margin`: an element placed with a margin above 0, the default included | warning | NUI-MOBILE-021, -060 |
 | `mobile-centred`: geometry x or y of -1, -2 or -3 | warning | NUI-MOBILE-027 |
 | `mobile-thin-cell`: a fixed list template cell narrower than 4 | warning | NUI-MOBILE-024 |
+| `mobile-list-image`: an element of type image in a list's row template, as a cell or nested in one | error | NUI-MOBILE-052 |
 | `mobile-scaling`: the window has lists or draw lists, which need per-player scaling for iOS (once per window) | info | NUI-MOBILE-022, -023, -025, -060 |
 | `mobile-tga`: an image whose resref the client finds as a base-game TGA only (needs the game) | warning | NUI-MOBILE-050, -051 |
+
+#### Icons in list rows
+
+`mobile-list-image` has no automatic fix (the export leaves the window as it is). Draw the icon with a draw-list
+image on a spacer as the cell; it draws on iOS, also through `nui_touch.nss`, which divides its rect by the density:
+
+```c
+// Instead of NuiListTemplateCell(NuiImage(NuiBind("icon"), ...), 32.0, FALSE):
+json jDraw = JsonArray();
+jDraw = JsonArrayInsert(jDraw, NuiDrawListImage(JsonBool(TRUE), NuiBind("icon"), NuiRect(0.0, 0.0, 32.0, 32.0),
+    JsonInt(NUI_ASPECT_FIT), JsonInt(NUI_HALIGN_CENTER), JsonInt(NUI_VALIGN_MIDDLE)));
+json jCells = JsonArray();
+jCells = JsonArrayInsert(jCells, NuiListTemplateCell(NuiDrawList(NuiSpacer(), JsonBool(TRUE), jDraw), 32.0, FALSE));
+jCells = JsonArrayInsert(jCells, NuiListTemplateCell(NuiLabel(NuiBind("name"), JsonInt(NUI_HALIGN_LEFT), JsonInt(NUI_VALIGN_MIDDLE)), 0.0, TRUE));
+json jList = NuiList(jCells, NuiBind("rows"), 32.0);
+```
+
+The bind `icon` stays an array of resrefs, one per row, as it was for the image.
 
 ### Preview
 
@@ -58,7 +80,8 @@ The toolbar's **Client** picks Desktop, iOS (density 2), iOS (density 3) or Andr
 GUI scale. On iOS the canvas lays the window out as the client does (`src/core/mobile/`): margins, row heights, row
 spacing, cell widths (at least 11 units) and draw coordinates multiplied by d, the window placed in points
 (its position multiplied by d / s; a -1 window in the bottom-right corner), the frame's extra (32 / s² wide and 66 / s² high at density 3) taken from the
-content, and the list inset at 14 px. A window the client would refuse shows its refusal in the problems list.
+content, and the list inset at 14 px. Images in list rows are hidden, as iOS never draws them (the broken layout of the
+row is not drawn; the check reports it). A window the client would refuse shows its refusal in the problems list.
 Desktop and Android draw exactly as before. `pnpm check --client ios3 [--ui-scale S]` checks the same way.
 
 At density 2 the multipliers follow the same rule (d for sizes, d / s for the position); the pixel-fixed extras

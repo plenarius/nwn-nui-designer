@@ -103,6 +103,42 @@ describe("the mobile checks", () => {
     expect(ids(run(N.NuiWindow(zero(N.NuiCol([drawn])), "T", N.NuiRect(0, 0, 300, 200))))).toEqual(["mobile-scaling"]);
   });
 
+  it("images in a list row, as a cell or nested in one, not a draw-list image on a spacer (NUI-MOBILE-052)", () => {
+    const icon = () => zero(N.NuiImage(N.NuiBind("icon"), 0, 0, 0));
+    const drawn = zero(N.NuiDrawList(zero(N.NuiSpacer()), true, [N.NuiDrawListImage(true, N.NuiBind("icon"), N.NuiRect(0, 0, 32, 32), 0, 0, 0)]));
+    const list = zero(
+      N.NuiList(
+        [
+          N.NuiListTemplateCell(icon(), 32, false),
+          N.NuiListTemplateCell(zero(N.NuiRow([zero(N.NuiLabel("a", 1, 0)), zero(N.NuiGroup(zero(N.NuiCol([icon()]))))])), 0, true),
+          N.NuiListTemplateCell(drawn, 32, false),
+        ],
+        32,
+      ),
+    );
+    // An image outside a list is fine.
+    const win = N.NuiWindow(zero(N.NuiCol([icon(), list])), "T", N.NuiRect(0, 0, 300, 200));
+    const f = run(win).filter((x) => x.kind === "Image in a list row on iOS");
+    expect(f.map((x) => [x.path, x.severity])).toEqual([
+      [[1, 0], "error"],
+      [[1, 1, 1, 0, 0], "error"],
+    ]);
+    expect(f[0]!.text).toContain("NUI-MOBILE-052");
+    expect(f[0]!.text).toContain("draw-list image on a spacer");
+    // Off by its id, like the others.
+    expect(run(win, {}, null, ["mobile-list-image"]).filter((x) => x.kind === "Image in a list row on iOS")).toEqual([]);
+    // The iOS preview hides those images (the client never draws them), and only those.
+    const pw = pointWindow(win, {}, IOS3)!;
+    const copy = (e: JsonObject) => pw.copyOf.get(e)!;
+    const cells = (list.row_template as JsonValue[][]).map((c) => c[0] as JsonObject);
+    const nested = (((cells[1]!.children as JsonObject[])[1]!.children as JsonObject[])[0]!.children as JsonObject[])[0]!;
+    expect(copy(cells[0]!).visible).toBe(false);
+    expect(copy(nested).visible).toBe(false);
+    const outside = ((win.root as JsonObject).children as JsonObject[])[0]!;
+    expect(copy(outside).visible).not.toBe(false);
+    expect(copy(cells[2]!).visible).not.toBe(false);
+  });
+
   it("base-game TGA images, with a game (NUI-MOBILE-050)", () => {
     const img = zero(N.NuiImage("po_hu_m_01_", 0, 0, 0));
     const btn = zero(N.NuiButtonImage(N.NuiBind("icon")));
