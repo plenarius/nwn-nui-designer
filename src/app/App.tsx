@@ -41,6 +41,8 @@ import { pressable } from "./editor/a11y.js";
 import { useResources } from "./editor/useResources.js";
 import { type LocalState, type WindowList, allStyleSets, fetchWindowList, fetchWindowText, loadLocalStyles } from "./local.js";
 import type { StyleRuleSet } from "../core/edit/style.js";
+import { CLIENT_KINDS, type ClientKind } from "../core/mobile/client.js";
+import { MOBILE_RULES, imageRiskOf } from "../core/mobile/lint.js";
 import { openText as openDocText } from "../core/edit/project.js";
 import type { SkinNav, SkinView } from "./skin/SkinMode.js";
 import { useSkin } from "./skin/useSkin.js";
@@ -84,6 +86,10 @@ interface Settings {
   grid: number;
   /** Draw the selected combo's open list on the canvas. */
   openList: boolean;
+  /** The client the canvas lays the window out as (the mobile preview): "desktop", "ios2", "ios3" or "android". */
+  client: ClientKind;
+  /** Run the mobile checks even when the client is the desktop. */
+  mobileChecks: boolean;
 }
 
 const DEFAULTS: Settings = {
@@ -108,6 +114,8 @@ const DEFAULTS: Settings = {
   theme: DEFAULT_THEME,
   grid: DEFAULT_GRID,
   openList: false,
+  client: "desktop",
+  mobileChecks: false,
 };
 
 /** Saved settings, with the text model reset to the new default if they were saved before it changed. */
@@ -176,7 +184,7 @@ export function App() {
   }, [skinArea, sample]);
   const [rendered, setRendered] = useState<Rendered | null>(null);
   const [drawError, setDrawError] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<"export" | "skin-export" | "resources" | "keys" | "rules" | "paste" | null>(null);
+  const [dialog, setDialog] = useState<"export" | "skin-export" | "resources" | "keys" | "rules" | "mobile" | "paste" | null>(null);
   const [pasted, setPasted] = useState("");
   const [bindFocus, setBindFocus] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
@@ -213,6 +221,11 @@ export function App() {
     };
   }, [canvasRes, settings.canvasW, settings.canvasH]);
 
+  // The mobile checks: on by choice, or whenever the canvas previews a mobile client. With a game, they tell the
+  // base-game TGA images that draw black on mobile clients.
+  const mobileOn = settings.mobileChecks || settings.client !== "desktop";
+  const imageRisk = useMemo(() => (canvasRes && !canvasRes.usingFallback ? imageRiskOf(canvasRes.resman) : null), [canvasRes]);
+
   // Findings: the client's rules, and the house style's when one is on. The problem list is core/edit/lint.ts', the
   // same as `pnpm check` prints.
   const findings: Finding[] = useMemo(() => {
@@ -225,8 +238,10 @@ export function App() {
       style: styleSets.find((x) => x.id === settings.style) ?? null,
       disabledRules: new Set(settings.disabledRules),
       outlines: rendered && rendered.window === doc.window ? rendered.outlines : undefined,
+      mobile: mobileOn,
+      imageRisk,
     });
-  }, [doc, fonts, settings.style, settings.disabledRules, rendered, styleSets]);
+  }, [doc, fonts, settings.style, settings.disabledRules, rendered, styleSets, mobileOn, imageRisk]);
 
   const issues: Issue[] = useMemo(() => {
     if (!doc) return [];
@@ -842,7 +857,7 @@ export function App() {
             <Canvas
               doc={doc}
               res={canvasRes}
-              settings={{ canvasW: settings.canvasW, canvasH: settings.canvasH, scale: settings.scale, zoom: settings.zoom, markers: settings.markers, outlines: settings.outlines, grid: settings.grid, openList: settings.openList }}
+              settings={{ canvasW: settings.canvasW, canvasH: settings.canvasH, scale: settings.scale, zoom: settings.zoom, markers: settings.markers, outlines: settings.outlines, grid: settings.grid, openList: settings.openList, client: settings.client }}
               sels={ed.sels}
               findings={findings}
               onSelect={ed.setSel}
@@ -861,6 +876,12 @@ export function App() {
               <label className="inline"><input type="checkbox" checked={settings.markers} onChange={(e) => set("markers", e.target.checked)} /> Problem markers</label>
               <label className="inline"><input type="checkbox" checked={settings.outlines} onChange={(e) => set("outlines", e.target.checked)} /> Row and column outlines</label>
               <label className="inline" title="Draw the selected combo's list as the client opens it: below the combo, never clipped to the window or the screen"><input type="checkbox" data-testid="open-list" checked={settings.openList} onChange={(e) => set("openList", e.target.checked)} /> Open combo list</label>
+              <select className="bar-client" value={settings.client} onChange={(e) => set("client", e.target.value as ClientKind)} aria-label="Client" title="Client: the canvas lays the window out as this client builds it. iOS multiplies margins, list row heights, cell widths, draw-list coordinates and the window position by its density (x2, x3), at the UI scale; Android lays out as the desktop (docs/MOBILE.md). A mobile client turns the mobile checks on.">
+                {CLIENT_KINDS.map((c) => <option key={c.kind} value={c.kind} title={c.title}>{c.short}</option>)}
+              </select>
+              <button className={`tb icon bar-mobile${mobileOn ? " on" : ""}`} title={`Mobile checks (${mobileOn ? "on" : "off"}): what breaks on the iOS and Android clients`} aria-label="Mobile checks" onClick={() => setDialog("mobile")}>
+                <Icon name="rules" size={14} />
+              </button>
               {drawError && <span className="finding error">{drawError}</span>}
               <span className="tb-spacer" />
               {rendered && (
@@ -981,6 +1002,24 @@ export function App() {
             {styleSet.rules.map((rule, i) => (
               <label key={rule.id} className="rule">
                 <input type="checkbox" data-autofocus={i === 0 || undefined} checked={!settings.disabledRules.includes(rule.id)} onChange={(e) => set("disabledRules", e.target.checked ? settings.disabledRules.filter((x) => x !== rule.id) : [...settings.disabledRules, rule.id])} />
+                <span><b>{rule.title}</b><br /><span className="muted small">{rule.summary}</span></span>
+              </label>
+            ))}
+          </div>
+        </Modal>
+      )}
+      {dialog === "mobile" && (
+        <Modal title="Mobile checks" icon="rules" className="rules" onClose={() => setDialog(null)}>
+          <div className="modal-body">
+            <p className="muted">{MOBILE_RULES.description} The rules are in the <a href={MOBILE_RULES.source} target="_blank" rel="noreferrer">nwn-nui-spec</a>; how the designer helps is in docs/MOBILE.md.</p>
+            <label className="rule">
+              <input type="checkbox" data-autofocus checked={settings.mobileChecks} onChange={(e) => set("mobileChecks", e.target.checked)} />
+              <span><b>Check for mobile clients</b><br /><span className="muted small">Always on while the Client is not Desktop.</span></span>
+            </label>
+            <hr />
+            {MOBILE_RULES.rules.map((rule) => (
+              <label key={rule.id} className="rule">
+                <input type="checkbox" checked={!settings.disabledRules.includes(rule.id)} onChange={(e) => set("disabledRules", e.target.checked ? settings.disabledRules.filter((x) => x !== rule.id) : [...settings.disabledRules, rule.id])} />
                 <span><b>{rule.title}</b><br /><span className="muted small">{rule.summary}</span></span>
               </label>
             ))}

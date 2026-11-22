@@ -1042,6 +1042,10 @@ button.link {
   color: #c9a3ff;
   border-color: rgba(201, 163, 255, 0.4);
 }
+.p-src.mobile {
+  color: #6fd3c4;
+  border-color: rgba(111, 211, 196, 0.4);
+}
 
 /* --- right: properties, binds, notes --------------------------------------------------------------------- */
 .tabs {
@@ -2573,4 +2577,15 @@ pre.licence-note {
   border: 1px dashed var(--line-2);
   border-radius: 3px;
   padding: 0 4px;
+}
+.canvas-bar .bar-client {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 1px 4px;
+}
+.canvas-bar .bar-mobile {
+  flex-shrink: 0;
+}
+.canvas-bar .bar-mobile.on {
+  color: var(--accent);
 }

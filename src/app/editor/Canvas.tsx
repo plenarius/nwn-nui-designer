@@ -25,6 +25,7 @@ import { type Outline, type Problem } from "../../core/render/render.js";
 import { editorProblems } from "../../core/edit/issues.js";
 import type { Resources } from "../../core/session.js";
 import { renderView } from "../../core/view.js";
+import { type ClientKind, clientProfile } from "../../core/mobile/client.js";
 import { browserCanvas } from "../platform.js";
 import { Icon, typeIcon } from "./icons.js";
 import { layoutSeverity } from "./ProblemsPanel.js";
@@ -43,6 +44,8 @@ export interface CanvasSettings {
   grid?: number;
   /** Draw the selected combo's open list (as the client opens it, below the combo, past the window if need be). */
   openList?: boolean;
+  /** The client the window is laid out as (the mobile preview, core/mobile/); default the desktop. */
+  client?: ClientKind;
 }
 
 export interface Rendered {
@@ -143,6 +146,7 @@ export function Canvas({ doc, res, settings, sels, findings, onSelect, onPick, o
           crop: true,
           scale: settings.scale,
           openCombo,
+          client: settings.client && settings.client !== "desktop" ? clientProfile(settings.client, settings.scale) : null,
         });
         if (cancelled) return;
         const c = r.canvas as unknown as HTMLCanvasElement;
@@ -163,7 +167,7 @@ export function Canvas({ doc, res, settings, sels, findings, onSelect, onPick, o
     };
     // onRendered and onError are stable enough: the render depends on the document and the settings.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc.window, doc.binds, doc.panes, res, settings.canvasW, settings.canvasH, settings.scale, openCombo]);
+  }, [doc.window, doc.binds, doc.panes, res, settings.canvasW, settings.canvasH, settings.scale, settings.client, openCombo]);
 
   // Canvas pixels in the document's coordinates, and back.
   const toDoc = useCallback(
