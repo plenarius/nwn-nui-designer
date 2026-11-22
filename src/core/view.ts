@@ -12,6 +12,9 @@ import { type Outline, type Problem, Renderer } from "./render/render.js";
 import { CanvasSurface } from "./render/surface.js";
 import { textLayer } from "./render/text.js";
 import type { Skin } from "./skin/skin.js";
+import { type ClientProfile, drawsAsDesktop } from "./mobile/client.js";
+import { clientRender, pointProblems } from "./mobile/preview.js";
+import { pointWindow } from "./mobile/transform.js";
 
 export interface ViewOptions {
   /** The screen the window is centred on (as the client places a window whose geometry is -1, -1). */
@@ -26,6 +29,11 @@ export interface ViewOptions {
   binds?: Record<string, unknown>;
   /** A combo (the window's element object) whose open list is drawn on top, past the window if need be; a crop keeps it. */
   openCombo?: JsonObject | null;
+  /**
+   * The client to lay the window out as (the mobile preview, core/mobile/): iOS multiplies margins, row heights, cell
+   * widths, draw coordinates and the window position, and has a bigger frame. Unset or desktop-like: the desktop.
+   */
+  client?: ClientProfile | null;
 }
 
 export interface ViewResult {
@@ -157,6 +165,8 @@ export async function renderView(
   const ch = opts.canvasH ?? DEFAULT_CANVAS[1];
   // The framework profile's binds (a window's `profiles` key) are set on every open: under the dump's own values.
   const binds = { ...profileBinds(doc.window), ...doc.binds, ...(opts.binds as Record<string, never> | undefined) };
+  // On a point-based client, a copy of the window with what it multiplies multiplied (desktop: the window itself).
+  const point = drawsAsDesktop(opts.client) ? null : pointWindow(doc.window, binds, opts.client!);
   let canvas!: CanvasLike;
   let rend!: Renderer;
   let rect: [number, number, number, number] = [0, 0, 0, 0];
@@ -164,12 +174,17 @@ export async function renderView(
   for (let pass = 0; pass < 6; pass++) {
     canvas = screen(make, cw, ch, canvas);
     surface = new CanvasSurface(make, cw, ch, canvas);
-    rend = new Renderer(skin, images, binds, surface);
+    rend = new Renderer(skin, images, point ? point.binds : binds, surface);
     rend.openCombo = opts.openCombo ?? null;
-    rect = rend.window(doc.window, cw, ch, doc.panes);
+    if (point) {
+      rend.client = clientRender(opts.client!);
+      if (rend.openCombo) rend.openCombo = point.copyOf.get(rend.openCombo) ?? null;
+    }
+    rect = rend.window(point ? point.window : doc.window, cw, ch, doc.panes);
     if (!images.hasPending()) break;
     await images.loadPending();
   }
+  if (point) pointProblems(rend, point, opts.client!);
   if (opts.overlay) drawOverlay(surface, skin, rend.outlines, rend.problems);
   let out = canvas;
   let origin: [number, number] = [0, 0];
@@ -240,12 +255,15 @@ export interface LayoutResult {
  * The window laid out and checked as renderView does, drawing nothing (the renderer's dry mode): the same outlines
  * and problems, synchronously, with no canvas. The editor's align and distribute tools measure their edits with it.
  */
-export function layoutView(doc: NuiDocument, skin: Skin, images: Images, opts: Pick<ViewOptions, "canvasW" | "canvasH" | "binds"> = {}): LayoutResult {
+export function layoutView(doc: NuiDocument, skin: Skin, images: Images, opts: Pick<ViewOptions, "canvasW" | "canvasH" | "binds" | "client"> = {}): LayoutResult {
   const cw = opts.canvasW ?? DEFAULT_CANVAS[0];
   const ch = opts.canvasH ?? DEFAULT_CANVAS[1];
   const binds = { ...profileBinds(doc.window), ...doc.binds, ...(opts.binds as Record<string, never> | undefined) };
-  const rend = new Renderer(skin, images, binds, new NoSurface(cw, ch));
+  const point = drawsAsDesktop(opts.client) ? null : pointWindow(doc.window, binds, opts.client!);
+  const rend = new Renderer(skin, images, point ? point.binds : binds, new NoSurface(cw, ch));
   rend.dry = true;
-  const windowRect = rend.window(doc.window, cw, ch, doc.panes);
+  if (point) rend.client = clientRender(opts.client!);
+  const windowRect = rend.window(point ? point.window : doc.window, cw, ch, doc.panes);
+  if (point) pointProblems(rend, point, opts.client!);
   return { problems: rend.problems, outlines: rend.outlines, windowRect };
 }

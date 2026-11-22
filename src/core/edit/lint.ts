@@ -5,6 +5,7 @@
  * - the client checks (validate.ts: types, ranges, binds, unknown keys, fonts the skin lacks), with the window keys
  *   the chosen style rule set declares;
  * - the chosen style rule set (style.ts), given the drawn rectangles when there are some;
+ * - when asked, the mobile checks (core/mobile/lint.ts: what breaks on the iOS and Android clients);
  * - the renderer's layout problems told as the editor tells them (issues.ts, editorProblems): clipped text, overflow,
  *   unsolvable sizes, missing images;
  *
@@ -13,6 +14,7 @@
 import type { Rect } from "../layout/layout.js";
 import type { Binds, JsonObject } from "../model/types.js";
 import type { Problem } from "../render/render.js";
+import { type ImageRisk, MOBILE_SOURCE, mobileFindings } from "../mobile/lint.js";
 import { specOf } from "./catalog.js";
 import { editorProblems, layoutSeverity } from "./issues.js";
 import { type StyleRuleSet, runStyle } from "./style.js";
@@ -22,7 +24,7 @@ import { type Finding, type Severity, validateWindow } from "./validate.js";
 /** One row of the problem list. */
 export interface WindowIssue {
   severity: Severity;
-  /** "layout" (the renderer), "client" (validate.ts) or "style:<id>". */
+  /** "layout" (the renderer), "client" (validate.ts), "mobile" (mobile/lint.ts) or "style:<id>". */
   source: string;
   kind: string;
   text: string;
@@ -47,6 +49,10 @@ export interface FindingsInput {
   disabledRules?: ReadonlySet<string>;
   /** The drawn elements of this window (the renderer's outlines), for the rules that look at sizes. */
   outlines?: readonly { elem: JsonObject; rect: Rect }[];
+  /** Run the mobile checks (core/mobile/lint.ts); their rules are turned off through disabledRules too. */
+  mobile?: boolean;
+  /** With a game: which images draw black on mobile clients (mobile/lint.ts, imageRiskOf). */
+  imageRisk?: ImageRisk | null;
 }
 
 /** The client checks and, when a style is chosen, its rules. */
@@ -57,6 +63,7 @@ export function windowFindings(i: FindingsInput): Finding[] {
     for (const o of i.outlines ?? []) if (!rects.has(o.elem)) rects.set(o.elem, o.rect);
     out.push(...runStyle(i.style, { win: i.win, binds: i.binds, rects, names: [i.name] }, i.disabledRules ?? new Set()));
   }
+  if (i.mobile) out.push(...mobileFindings({ win: i.win, binds: i.binds, names: [i.name], imageRisk: i.imageRisk }, i.disabledRules ?? new Set()));
   return out;
 }
 
@@ -82,7 +89,7 @@ export function windowIssues(win: JsonObject, binds: Binds, problems: readonly P
     out.push({ severity: layoutSeverity(p.kind), source: "layout", kind: p.kind, text: p.text, path, where: path ? describeElem(win, path) : p.path || "window" });
   }
   for (const f of findings) {
-    out.push({ severity: f.severity, source: f.source.startsWith("style:") ? f.source : "client", kind: f.kind, text: f.text, path: f.path, where: describeElem(win, f.path) });
+    out.push({ severity: f.severity, source: f.source.startsWith("style:") || f.source === MOBILE_SOURCE ? f.source : "client", kind: f.kind, text: f.text, path: f.path, where: describeElem(win, f.path) });
   }
   return out.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
 }

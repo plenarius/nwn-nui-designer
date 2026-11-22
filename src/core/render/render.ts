@@ -222,8 +222,26 @@ function withAlpha(im: RGBAImage, alpha: number): RGBAImage {
   return out;
 }
 
+/**
+ * What a client other than the desktop changes in the drawing (the mobile preview, core/mobile/): the window's
+ * position, the frame, a list's inset and row spacing. The JSON's own multiplied quantities are changed before the
+ * window is drawn (core/mobile/transform.ts). Unset, the renderer is the desktop's, unchanged.
+ */
+export interface RenderClient {
+  /** Where a window lands along one axis: its geometry value, its size and the screen's, in GUI units. */
+  position(v: number, size: number, screen: number): number;
+  /** A bordered list's inset on each side (NUI-LIST-002; NUI-MOBILE-033). */
+  listInset: number;
+  /** The space between list rows (NUI-LIST-003; NUI-MOBILE-022). */
+  rowSpacing: number;
+  /** How much more width and height the frame takes than the desktop's (NUI-MOBILE-030): the content has less. */
+  frameExtra: [number, number];
+}
+
 export class Renderer {
   problems: Problem[] = [];
+  /** A client other than the desktop (the mobile preview), or null. */
+  client: RenderClient | null = null;
   outlines: Outline[] = [];
   /** The screen's size, for the tooltip and combo list checks (set by window()). */
   private screenW = Infinity;
@@ -502,8 +520,9 @@ export class Renderer {
     const ww = g("w", 400);
     const wh = g("h", 300);
     // -1 centres, -2 and -3 place at the mouse (the canvas centre here), below 0 clamps to 0 (window.ts).
-    const wx = windowPosition(g("x", -1), ww, canvasW);
-    const wy = windowPosition(g("y", -1), wh, canvasH);
+    const place = this.client ? this.client.position : windowPosition;
+    const wx = place(g("x", -1), ww, canvasW);
+    const wy = place(g("y", -1), wh, canvasH);
     const chrome = windowChrome(win, this.binds);
     const hh = chrome.header ? CHROME.header_h : 0;
     const ctx: Ctx = { ox: 0, oy: 0, clip: [wx, wy, wx + ww, wy + wh], row: null, disabled: false };
@@ -553,8 +572,12 @@ export class Renderer {
     if (chrome.border) this.frame("window.border_image", "nui_windowh", [wx, bodyY, ww, wy + wh - bodyY], ctx);
     const cx = wx + CHROME.content_x;
     const cy = bodyY + CHROME.content_y;
-    const cw = ww - 2 * CHROME.content_x;
-    const ch = wy + wh - cy - CHROME.content_bottom;
+    let cw = ww - 2 * CHROME.content_x;
+    let ch = wy + wh - cy - CHROME.content_bottom;
+    if (this.client) {
+      cw -= this.client.frameExtra[0];
+      ch -= this.client.frameExtra[1];
+    }
     const root = win.root;
     if (isObject(root)) {
       this.panes = panes;
@@ -1177,16 +1200,19 @@ export class Renderer {
     let rows = Math.trunc(pyFloat(this.value(e, "row_count", ctx, 0)));
     if (!Number.isFinite(rows)) rows = 0;
     const rh = typeof e.row_height === "number" ? e.row_height : 25;
-    const inner: Rect = [x + LIST_INSET_X, y + LIST_INSET_Y, w - 2 * LIST_INSET_X, h - 2 * LIST_INSET_Y];
-    const need = rows * (rh + LIST_SPACING);
-    const overflow = need - LIST_SPACING > inner[3];
+    const insetX = this.client ? this.client.listInset : LIST_INSET_X;
+    const insetY = this.client ? this.client.listInset : LIST_INSET_Y;
+    const spacing = this.client ? this.client.rowSpacing : LIST_SPACING;
+    const inner: Rect = [x + insetX, y + insetY, w - 2 * insetX, h - 2 * insetY];
+    const need = rows * (rh + spacing);
+    const overflow = need - spacing > inner[3];
     const showBar = scrollbars === 2 || scrollbars === 3 || (scrollbars === 4 && overflow);
     // The rows take the room the scrollbar leaves.
     const rowW = inner[2] - (showBar ? SCROLLBAR : 0);
     // A scrollbar the window forces keeps its room, but the client draws none while the rows fit
     // (docs/CLIENT-BEHAVIOUR.md#layout).
     if (showBar && overflow) {
-      this.scrollbar([x + w - LIST_INSET_X - SCROLLBAR, y + LIST_INSET_Y, SCROLLBAR, h - 2 * LIST_INSET_Y], ctx, inner[3] / Math.max(need, 1));
+      this.scrollbar([x + w - insetX - SCROLLBAR, y + insetY, SCROLLBAR, h - 2 * insetY], ctx, inner[3] / Math.max(need, 1));
     }
     const clipR = inner[0] + inner[2] - (showBar ? SCROLLBAR : 0);
     const clip = intersect(ctx.clip, [inner[0], inner[1], clipR, inner[1] + inner[3]]);
@@ -1195,7 +1221,7 @@ export class Renderer {
     const first = new Map<string, Problem>();
     const repeats = new Map<string, number>();
     for (let i = 0; i < rows; i++) {
-      const ry = inner[1] + i * (rh + LIST_SPACING);
+      const ry = inner[1] + i * (rh + spacing);
       let nodes: LayoutNode[];
       try {
         nodes = solveRowTemplate(cells, rowW, rh, `${n.path}/row ${i}`);
@@ -1239,7 +1265,7 @@ export class Renderer {
       if (k) p.text += ` (and ${k} more of the ${rows} rows)`;
     }
     if (overflow && scrollbars === 0) {
-      this.problem(n, "clipped content", `${rows} rows need ${f0(need - LIST_SPACING)} px, ${f0(inner[3])} show`, r);
+      this.problem(n, "clipped content", `${rows} rows need ${f0(need - spacing)} px, ${f0(inner[3])} show`, r);
     }
   }
 
