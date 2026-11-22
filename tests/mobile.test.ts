@@ -304,6 +304,20 @@ describe("the portable-margins export (NUI-MOBILE-060)", () => {
     expect(compared).toBeGreaterThan(100);
   });
 
+  it("never turns a window the desktop builds into one it refuses, nor one iOS refuses", () => {
+    const checked: string[] = [];
+    for (const f of readdirSync(FIX).filter((x) => /\.(jui|json)$/.test(x))) {
+      const ed = openText(readFileSync(join(FIX, f), "utf8"), f).doc;
+      const d = (w: JsonObject) => ({ name: f, form: f, window: w, binds: ed.binds, panes: ed.panes });
+      if (refused(desk(d(ed.window)))) continue;
+      const out = portableMargins(ed.window);
+      expect(refused(desk(d(out))), `${f} on the desktop`).toBe(false);
+      expect(refused(lay(d(out))), `${f} on iOS`).toBe(false);
+      checked.push(f);
+    }
+    expect(checked).toContain("options-window.jui");
+  });
+
   it("is a project setting the .jui and NWScript exports follow", () => {
     const win = N.NuiWindow(N.NuiCol([N.NuiButton("b")]), "T", N.NuiRect(0, 0, 300, 200));
     const ed: EditorDoc = { name: "t", window: win, binds: {}, panes: {}, notes: "", export: { ...defaultExport("t"), portableMargins: true, touch: true } };

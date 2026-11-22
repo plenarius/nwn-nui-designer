@@ -72,6 +72,10 @@ function convert(e: JsonObject): Converted {
       // A span's own size across holds its children's margins: the spacers take them out of it.
       const key = horizontal ? "height" : "width";
       if (typeof o[key] === "number") o[key] = Math.max(0, (o[key] as number) - 2 * mc);
+      // A spacer has no margin, so it may fill the span across: capped at the span's new size, or it no longer fits.
+      const room = o[key];
+      if (typeof room === "number")
+        o.children = children.map((c) => (isObject(c) && c.type === "spacer" && typeof c[key] === "number" && c[key] > room ? { ...c, [key]: room } : c));
       out = across(o, mc);
     }
   } else if (Array.isArray(e.children)) {
