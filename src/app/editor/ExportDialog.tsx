@@ -9,6 +9,8 @@ import { Icon } from "./icons.js";
 import { Modal } from "./Modal.js";
 import type { Editor } from "./useEditor.js";
 import { errorText } from "../../core/errors.js";
+import { exportWindow } from "../../core/mobile/portable.js";
+import NUI_TOUCH from "../../../nss/nui_touch.nss?raw";
 
 type Tab = "jui" | "nss" | "project" | "dump";
 
@@ -17,11 +19,18 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
   const [skeleton, setSkeleton] = useState(true);
   const [compact, setCompact] = useState(false);
   const x = doc.export;
-  const set = (k: keyof ExportSettings, v: string) => ed.apply((d) => ({ ...d, export: { ...d.export, [k]: v } }), `export:${k}`);
+  const set = (k: "resref" | "windowId" | "script" | "prefix", v: string) => ed.apply((d) => ({ ...d, export: { ...d.export, [k]: v } }), `export:${k}`);
+  const setFlag = (k: "portableMargins" | "touch", v: boolean) =>
+    ed.apply((d) => {
+      const exp: ExportSettings = { ...d.export };
+      if (v) exp[k] = true;
+      else delete exp[k];
+      return { ...d, export: exp };
+    }, `export:${k}`);
   const text = useMemo(() => {
     try {
-      if (tab === "jui") return writeJui(doc.window, compact ? "" : "  ");
-      if (tab === "nss") return writeNwscript(doc.window, { ...nwscriptOptions(doc), skeleton });
+      if (tab === "jui") return writeJui(exportWindow(doc), compact ? "" : "  ");
+      if (tab === "nss") return writeNwscript(exportWindow(doc), { ...nwscriptOptions(doc), skeleton });
       if (tab === "project") return writeProject(doc);
       return writeDump(doc);
     } catch (e) {
@@ -67,6 +76,9 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
               <label className="inline">
                 <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} /> Compact (one line)
               </label>
+              <label className="inline" title="iOS multiplies every margin by its screen density (NUI-MOBILE-021): write margin 0 on every element and the gaps as spacers. docs/MOBILE.md">
+                <input type="checkbox" checked={!!x.portableMargins} onChange={(e) => setFlag("portableMargins", e.target.checked)} /> Portable margins (margin 0 and spacers, for iOS)
+              </label>
               <div className="note">
                 <p>
                   Ship <code>{x.resref}.jui</code> to the players (a hak, NWSync, or their override): the client loads it from its own resources, so the
@@ -99,6 +111,12 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
               <label className="inline">
                 <input type="checkbox" checked={skeleton} onChange={(e) => setSkeleton(e.target.checked)} /> Open, bind and event skeleton
               </label>
+              <label className="inline" title="iOS multiplies every margin by its screen density (NUI-MOBILE-021): write margin 0 on every element and the gaps as spacers. docs/MOBILE.md">
+                <input type="checkbox" checked={!!x.portableMargins} onChange={(e) => setFlag("portableMargins", e.target.checked)} /> Portable margins (margin 0 and spacers, for iOS)
+              </label>
+              <label className="inline" title="The skeleton builds the window per player through nui_touch.nss: list row heights, cell widths and draw coordinates divided by the player's density factor, placed at the top left on touch clients, the iOS frame's extra size added. docs/MOBILE.md">
+                <input type="checkbox" checked={!!x.touch} disabled={!skeleton} onChange={(e) => setFlag("touch", e.target.checked)} /> Scale for touch clients (nui_touch)
+              </label>
               <div className="note">
                 <p>
                   <code>{x.prefix}_Window()</code> builds exactly the JSON of the .jui, with <code>nw_inc_nui</code>'s builders. Binds and ids are constants.
@@ -110,6 +128,15 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
                   </p>
                 ) : (
                   <p>Without the skeleton the file is an include.</p>
+                )}
+                {x.touch && skeleton && (
+                  <p>
+                    Ship <code>nui_touch.nss</code> beside it{" "}
+                    <button className="small" onClick={() => { downloadBytes(cp1252(NUI_TOUCH), "nui_touch.nss"); ed.toast("Downloaded nui_touch.nss", "ok"); }}>
+                      <Icon name="export" size={12} /> nui_touch.nss
+                    </button>
+                    , call <code>NuiTouch_StartProbe(oPC)</code> at login and <code>NuiTouch_HandleEvent()</code> first in the NUI event script. Its numbers come from one iPhone and one Android tablet.
+                  </p>
                 )}
                 <p className="muted">Saved in the Windows-1252 encoding the compiler reads.</p>
               </div>
@@ -125,6 +152,11 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
             <div className="note">
               <p>The window with its bind values in nwn-module's nui-preview format, for its renderer and for this designer's viewer.</p>
             </div>
+          )}
+          {x.portableMargins && (tab === "jui" || tab === "nss") && (
+            <p className="muted small">
+              Portable margins: each margin is now a spacer, and list cells lose theirs (their content fills the cell). Fixed sizes lay out as before; where the solver shares room between flexible elements, it can settle a little differently. Open the export to check it.
+            </p>
           )}
           {problems > 0 && (
             <p className="finding warning">

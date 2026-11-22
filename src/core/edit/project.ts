@@ -22,6 +22,10 @@ export interface ExportSettings {
   script: string;
   /** Prefix of the NWScript's functions and constants. */
   prefix: string;
+  /** Write margin 0 everywhere and the margins' gaps as spacers (mobile/portable.ts; NUI-MOBILE-060). */
+  portableMargins?: boolean;
+  /** The NWScript skeleton builds the window per player through nui_touch.nss (docs/MOBILE.md). */
+  touch?: boolean;
 }
 
 export interface EditorDoc {
@@ -80,7 +84,7 @@ export function readProject(v: JsonObject): EditorDoc {
   const panes: Record<string, JsonObject> = {};
   if (isObject(v.panes)) for (const [k, p] of Object.entries(v.panes)) if (isObject(p)) panes[k] = p;
   const exp = isObject(v.export) ? v.export : {};
-  const pick = (k: keyof ExportSettings) => (typeof exp[k] === "string" ? (exp[k] as string) : undefined);
+  const pick = (k: "resref" | "windowId" | "script" | "prefix") => (typeof exp[k] === "string" ? (exp[k] as string) : undefined);
   const d = defaultExport(name);
   return {
     name,
@@ -88,7 +92,14 @@ export function readProject(v: JsonObject): EditorDoc {
     binds: isObject(v.binds) ? (v.binds as Binds) : {},
     panes,
     notes: typeof v.notes === "string" ? v.notes : "",
-    export: { resref: pick("resref") ?? d.resref, windowId: pick("windowId") ?? d.windowId, script: pick("script") ?? d.script, prefix: pick("prefix") ?? d.prefix },
+    export: {
+      resref: pick("resref") ?? d.resref,
+      windowId: pick("windowId") ?? d.windowId,
+      script: pick("script") ?? d.script,
+      prefix: pick("prefix") ?? d.prefix,
+      ...(exp.portableMargins === true ? { portableMargins: true } : {}),
+      ...(exp.touch === true ? { touch: true } : {}),
+    },
   };
 }
 

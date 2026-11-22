@@ -226,6 +226,11 @@ export interface NwscriptOptions {
   splitOver?: number;
   /** Where it came from, for the header. */
   source?: string;
+  /**
+   * The skeleton builds the window per player through nui_touch.nss (NuiTouch_Window), and sets a geometry bind
+   * through NuiTouch_Rect, so it fits touch clients (docs/MOBILE.md). The include is shipped beside the script.
+   */
+  touch?: boolean;
 }
 
 const KEYWORDS = new Set(["int", "float", "string", "object", "json", "void", "vector", "location", "effect", "if", "else", "for", "while", "do", "return", "switch", "case", "break", "continue", "default", "const", "struct", "action", "event", "itemproperty", "talent", "sqlquery", "cassowary"]);
@@ -740,6 +745,7 @@ export function writeNwscript(win: JsonObject, o: NwscriptOptions): string {
   }
   lines.push("");
   lines.push('#include "nw_inc_nui"');
+  if (o.skeleton && o.touch) lines.push('#include "nui_touch" // nwn-nui-designer\'s nss/nui_touch.nss: windows for touch clients');
   lines.push("");
   lines.push(`const string ${PU}_WINDOW_ID = ${nssString(o.windowId)};`);
   const bindConsts = prog.consts.filter(([n]) => n.startsWith(`${PU}_BIND_`));
@@ -782,7 +788,10 @@ export function writeNwscript(win: JsonObject, o: NwscriptOptions): string {
     lines.push(`/// Opens the window on oPC and sets the designer's sample values; returns its token (0 if it failed).`);
     lines.push(`int ${P}_Open(object oPC)`);
     lines.push("{");
-    lines.push(`    int nToken = NuiCreate(oPC, ${prog.entry}(), ${PU}_WINDOW_ID, ${nssString(o.script)});`);
+    if (o.touch) {
+      lines.push("    // Scaled for the player's client: unchanged on desktop and Android (call NuiTouch_StartProbe at login).");
+      lines.push(`    int nToken = NuiCreate(oPC, NuiTouch_Window(oPC, ${prog.entry}()), ${PU}_WINDOW_ID, ${nssString(o.script)});`);
+    } else lines.push(`    int nToken = NuiCreate(oPC, ${prog.entry}(), ${PU}_WINDOW_ID, ${nssString(o.script)});`);
     lines.push("    if (nToken == 0)");
     lines.push("        return 0;");
     const samples = Object.entries(o.binds ?? {}).filter(([k]) => bindConsts.some(([, v]) => v === k));
@@ -790,7 +799,10 @@ export function writeNwscript(win: JsonObject, o: NwscriptOptions): string {
       lines.push("    // The designer's sample values: replace them with the real ones.");
       for (const [k, v] of samples) {
         const c = bindConsts.find(([, x]) => x === k)![0];
-        lines.push(`    NuiSetBind(oPC, nToken, ${c}, ${sampleExpr(g, v)});`);
+        const geo = o.touch && isObject(win.geometry) && win.geometry.bind === k && isObject(v) ? v : null;
+        const n = (x: JsonValue | undefined) => fmtFloat(typeof x === "number" ? x : 0);
+        const expr = geo ? `NuiTouch_Rect(oPC, ${n(geo.x)}, ${n(geo.y)}, ${n(geo.w)}, ${n(geo.h)})` : sampleExpr(g, v);
+        lines.push(`    NuiSetBind(oPC, nToken, ${c}, ${expr});`);
       }
     }
     lines.push("    return nToken;");
@@ -834,5 +846,5 @@ export function writeNwscript(win: JsonObject, o: NwscriptOptions): string {
 
 /** The export settings of a document as options. */
 export function nwscriptOptions(d: EditorDoc, skeleton = true): NwscriptOptions {
-  return { prefix: d.export.prefix, windowId: d.export.windowId, script: d.export.script, skeleton, binds: d.binds, source: d.name };
+  return { prefix: d.export.prefix, windowId: d.export.windowId, script: d.export.script, skeleton, binds: d.binds, source: d.name, touch: !!d.export.touch };
 }
