@@ -801,7 +801,7 @@ export function writeNwscript(win: JsonObject, o: NwscriptOptions): string {
         const c = bindConsts.find(([, x]) => x === k)![0];
         const geo = o.touch && isObject(win.geometry) && win.geometry.bind === k && isObject(v) ? v : null;
         const n = (x: JsonValue | undefined) => fmtFloat(typeof x === "number" ? x : 0);
-        const expr = geo ? `NuiTouch_Rect(oPC, ${n(geo.x)}, ${n(geo.y)}, ${n(geo.w)}, ${n(geo.h)})` : sampleExpr(g, v);
+        const expr = geo ? `NuiTouch_Rect(oPC, ${n(geo.x)}, ${n(geo.y)}, ${n(geo.w)}, ${n(geo.h)}, NuiTouch_Grown(oPC))` : sampleExpr(g, v);
         lines.push(`    NuiSetBind(oPC, nToken, ${c}, ${expr});`);
       }
     }

@@ -13,16 +13,16 @@ export const REFUSAL = "Error constructing window from json: The constraint can 
 /**
  * The renderer's client for a point-based profile:
  *
- * - the window position is in points, multiplied by f (NUI-MOBILE-026); -1, -2 and -3 are worked out as on the
- *   desktop and then multiplied too, which puts the window past the screen's edge, where the client clamps it into
+ * - the window position is in points, multiplied by the position factor fp = d / s (NUI-MOBILE-026); -1, -2 and -3
+ *   are worked out as on the desktop and then multiplied too, which puts the window past the screen's edge, where the client clamps it into
  *   the bottom-right corner (NUI-MOBILE-027, T64). Every position is clamped into the screen;
- * - a list's inset and row spacing (NUI-MOBILE-033, -022);
+ * - a list's inset, fixed in screen pixels (NUI-MOBILE-033), and its row spacing, multiplied by d (NUI-MOBILE-022);
  * - the frame's extra width and height (NUI-MOBILE-030, the K / s^2 fit; the 6 units of slack are the author's, not
  *   the client's, so they are not taken here).
  */
 export function clientRender(p: ClientProfile): RenderClient {
   return {
-    position: (v, size, screen) => Math.min(Math.max(0, screen - size), Math.max(0, windowPosition(v, size, screen) * p.f)),
+    position: (v, size, screen) => Math.min(Math.max(0, screen - size), Math.max(0, windowPosition(v, size, screen) * p.fp)),
     listInset: p.listInset,
     rowSpacing: p.rowSpacing,
     frameExtra: p.frameExtra,

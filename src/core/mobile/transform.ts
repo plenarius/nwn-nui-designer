@@ -1,9 +1,10 @@
 /**
  * The window as a point-based client (iOS) builds it, for the mobile preview: a copy of the window JSON with what
- * iOS multiplies by f = d / s multiplied (NUI-MOBILE-020): every element's margin, the default 2 included
- * (NUI-MOBILE-021), each list's row_height (NUI-MOBILE-022), its template's cell widths, never narrower than the
- * drawn minimum (NUI-MOBILE-023, -024), and every draw-list coordinate and size (NUI-MOBILE-025). Sizes, fonts and
- * glyphs stay as they are. The renderer does the rest (the window position, the list inset and row spacing, the
+ * iOS multiplies by the size factor fd = d multiplied, whatever the GUI scale (NUI-MOBILE-020): every element's
+ * margin, the default 2 included (NUI-MOBILE-021), each list's row_height (NUI-MOBILE-022), its template's cell
+ * widths, never narrower than the drawn minimum (NUI-MOBILE-023, -024), and every draw-list coordinate and size and
+ * line thickness (NUI-MOBILE-025; nui_touch.nss divides the thickness too). Sizes, fonts and glyphs stay as they are.
+ * The window's position is multiplied by fp = d / s instead (preview.ts). The renderer does the rest (the window position, the list inset and row spacing, the
  * frame: render.ts, RenderClient), so the desktop path is never touched.
  *
  * The copies are kept per (window, binds, client) so the layout cache (layout.ts) finds the same objects on every
@@ -13,8 +14,8 @@ import { marginOf } from "../layout/layout.js";
 import { type Binds, type JsonObject, type JsonValue, isObject } from "../model/types.js";
 import type { ClientProfile } from "./client.js";
 
-/** The draw-list keys that hold coordinates or sizes, multiplied on iOS (NUI-MOBILE-025). Not image_region (texels),
- * not line_thickness (not measured). */
+/** The draw-list keys that hold coordinates or sizes, multiplied on iOS (NUI-MOBILE-025). Not image_region (texels);
+ * line_thickness is multiplied on its own. */
 export const DRAW_COORD_KEYS = ["rect", "points", "a", "b", "c", "ctrl0", "ctrl1", "radius"] as const;
 
 /** NuiList's row height when the JSON has none (NUI-LIST-001). */
@@ -55,18 +56,18 @@ const cache = new WeakMap<JsonObject, Map<string, Transformed>>();
 /** The window as iOS builds it (null when the client is desktop-like: draw the window itself). */
 export function pointWindow(win: JsonObject, binds: Binds, p: ClientProfile): PointWindow | null {
   if (!p.pointBased) return null;
-  const key = `${p.f} ${p.minCell}`;
+  const key = `${p.fd} ${p.minCell}`;
   let byClient = cache.get(win);
   if (!byClient) cache.set(win, (byClient = new Map()));
   let t = byClient.get(key);
   if (!t) byClient.set(key, (t = transform(win, p)));
   const outBinds: Binds = { ...binds };
-  for (const b of t.geomBinds) if (b in binds) outBinds[b] = scaleGeom(binds[b], p.f) as JsonValue;
+  for (const b of t.geomBinds) if (b in binds) outBinds[b] = scaleGeom(binds[b], p.fd) as JsonValue;
   return { window: t.window, binds: outBinds, original: t.original, copyOf: t.copyOf };
 }
 
 function transform(win: JsonObject, p: ClientProfile): Transformed {
-  const f = p.f;
+  const f = p.fd;
   const original = new Map<JsonObject, JsonObject>();
   const copyOf = new Map<JsonObject, JsonObject>();
   const geomBinds = new Set<string>();
@@ -80,6 +81,7 @@ function transform(win: JsonObject, p: ClientProfile): Transformed {
       if (isObject(v) && typeof v.bind === "string") geomBinds.add(v.bind);
       else o[k] = scaleGeom(v, f)!;
     }
+    if (typeof o.line_thickness === "number") o.line_thickness *= f;
     return o;
   };
 

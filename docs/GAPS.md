@@ -157,13 +157,21 @@ Still open, in the order they are planned:
 
 From the nwn-nui-spec's measurements ([MOBILE.md](MOBILE.md)): one iPhone at density 3 and one Android tablet.
 
-- **Density 2 is not measured.** Its multipliers follow f = d / s; the frame's extra and the list inset are the
-  density-3 numbers scaled by (d - 1) / 2, a guess. `nui_touch.nss` makes the same guess for the frame.
+- **Density 2 is not measured.** Its multipliers are taken to follow the same rule as density 3 (d for sizes,
+  d / s for the position); the frame's extra and the list inset are the density-3 numbers scaled by (d - 1) / 2,
+  the narrowest cell by d / 3, guesses. `nui_touch.nss` makes the same guess for the frame.
+- **The probe cannot tell iOS at a GUI scale equal to its density** (d = s, say density 2 at scale 2.0) from a
+  desktop: it measures the position factor d / s, which is then 1, but the client still multiplies sizes by d. The
+  preview shows such a client as iOS; `nui_touch.nss` treats it as a desktop.
+- **Row spacing at s = 1.6 is not measured.** The preview takes it as 4 d (12 on an iPhone, NUI-MOBILE-022 at
+  s = 1.0) like the other sizes; `nui_touch.nss`'s `NuiTouch_FitRows` (from a helper used on an iPhone) counts 4.
+- **The narrowest list cell** (about 11 px at s = 1.0, T61) is taken to be in the cells' own space (11 units at any
+  GUI scale), not fixed in screen pixels; only s = 1.0 was measured.
 - **The iOS frame's extra is a fit through two GUI scales** (K / s²); a large window needed about 10 more height at
   1.6 (the spec's T73, cause unknown). The preview takes the fit without the 6 units of slack.
 - **Not modelled in the preview:** the iOS button frame drawn about 10 px inside its box (NUI-MOBILE-031) and
   right-aligned text on it (-032), padding (not measured), and the first list cell drawing a little wider than
-  3 x its width (T60).
+  3 x its width (T60). `nui_touch.nss` grows such controls; the preview shows them that much taller.
 - **Bound values** of draw-list coordinates are multiplied in the preview; bound row heights and cell widths do not
   exist (NUI does not bind them).
 - **`mobile-tga` needs the game**, and checks only static resrefs and bind samples, not resrefs a script picks at

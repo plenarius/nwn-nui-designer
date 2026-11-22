@@ -297,11 +297,15 @@ What the iOS and Android clients do differently is the nwn-nui-spec's (NUI-MOBIL
 
 - **The numbers in one table** (`client.ts`, `MOBILE`), from the spec's `tables/mobile.yaml`, each cited by rule.
 - **The preview rewrites a copy of the JSON, not the layout engine** (`transform.ts`): margins, row heights, cell
-  widths and draw coordinates multiplied by f, which is what the client does to the same JSON, so the solver and the
+  widths and draw coordinates multiplied by the density d (the window position, in points, by d / s), which is what
+  the client does to the same JSON, so the solver and the
   golden-checked desktop path stay as they are. The copies are kept per window and client, so the layout cache still
   finds the same objects, and each maps back to the editor's element (`preview.ts`). What is not in the JSON (the
   window position in points, the list inset and row spacing, the frame's extra) is a `RenderClient` the renderer
   takes; unset, it is the desktop's, so Desktop and Android draw byte for byte as before (`tests/mobile.test.ts`).
+- **`touch.ts` is `nss/nui_touch.nss` in TypeScript**, step for step, so the tests can check that the preview of the
+  window the script sends lays out as the desktop window, at GUI scales 1.0 and 1.6, and that its constants are the
+  script's.
 - **The checks are a rule set shaped like a style** (`lint.ts`), so the editor's dialog and `--disable-rule` turn
   them off one by one; they are not a style, so they run beside a house style. Off by default (most windows are for
   the desktop), on while the preview shows a mobile client.

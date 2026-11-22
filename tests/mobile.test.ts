@@ -18,6 +18,7 @@ import { MOBILE_RULES, imageRiskOf, mobileFindings } from "../src/core/mobile/li
 import { REFUSAL } from "../src/core/mobile/preview.js";
 import { exportWindow, portableMargins } from "../src/core/mobile/portable.js";
 import { pointWindow } from "../src/core/mobile/transform.js";
+import { NUI_TOUCH, growControls, touchRect, touchWindow } from "../src/core/mobile/touch.js";
 import { ResMan } from "../src/core/res/resman.js";
 import { resType } from "../src/core/res/restype.js";
 import type { Resources } from "../src/core/session.js";
@@ -48,17 +49,20 @@ const label = (h = 32, margin?: number) => {
 const zero = (e: JsonObject) => N.NuiMargin(e, 0);
 
 describe("client profiles (tables/mobile.yaml)", () => {
-  it("desktop and Android are desktop-like, iOS multiplies by f = d / s", () => {
-    for (const k of ["desktop", "android"] as const) expect(clientProfile(k, 1.6)).toMatchObject({ f: 1, pointBased: false, listInset: 4, rowSpacing: 4, frameExtra: [0, 0] });
-    expect(IOS3).toMatchObject({ d: 3, s: 1, f: 3, pointBased: true, minCell: 11, listInset: 14, rowSpacing: 12, frameExtra: [32, 66] });
+  it("desktop and Android are desktop-like, iOS places by fp = d / s and sizes by fd = d", () => {
+    for (const k of ["desktop", "android"] as const) expect(clientProfile(k, 1.6)).toMatchObject({ fp: 1, fd: 1, pointBased: false, listInset: 4, rowSpacing: 4, frameExtra: [0, 0] });
+    expect(IOS3).toMatchObject({ d: 3, s: 1, fp: 3, fd: 3, pointBased: true, minCell: 11, listInset: 14, rowSpacing: 12, frameExtra: [32, 66] });
     const at16 = clientProfile("ios3", 1.6);
-    expect(at16.f).toBeCloseTo(1.875);
+    expect(at16.fp).toBeCloseTo(1.875);
+    // Sizes are multiplied by d whatever the GUI scale (a draw rect sent 32 / 1.875 high drew 82 px = 17.07 x 3 x 1.6).
+    expect(at16).toMatchObject({ fd: 3, rowSpacing: 12, minCell: 11 });
     expect(at16.listInset).toBeCloseTo(8.75); // about 8.7 measured (T68)
     expect(at16.frameExtra[0]).toBeCloseTo(12.5); // 12 measured (T65)
     expect(at16.frameExtra[1]).toBeCloseTo(25.8, 1); // about 28 measured (T65)
-    // A GUI scale of 0 counts as 1 (NUI-MOBILE-040); a density-2 client at scale 2 is desktop-like (f = 1).
-    expect(clientProfile("ios3", 0).f).toBe(3);
-    expect(clientProfile("ios2", 2).pointBased).toBe(false);
+    // A GUI scale of 0 counts as 1 (NUI-MOBILE-040). A density-2 client at scale 2 places windows as the desktop does
+    // but still multiplies sizes by 2 (the probe cannot tell it from a desktop: docs/GAPS.md).
+    expect(clientProfile("ios3", 0).fp).toBe(3);
+    expect(clientProfile("ios2", 2)).toMatchObject({ pointBased: true, fp: 1, fd: 2 });
   });
 });
 
@@ -237,7 +241,7 @@ describe("the preview: the window as iOS builds it", () => {
     const pw = pointWindow(N.NuiWindow(zero(N.NuiDrawList(zero(N.NuiSpacer()), false, [N.NuiDrawListRect(true, null, true, 1, N.NuiRect(0, 1, 10, 2)), N.NuiDrawListRect(true, null, true, 1, N.NuiBind("r"))])), "T", N.NuiRect(0, 0, 9, 9)), { r: [N.NuiRect(1, 1, 1, 1)] }, IOS3)!;
     const items = (pw.window.root as JsonObject).draw_list as JsonObject[];
     expect(items[0]!.rect).toEqual(N.NuiRect(0, 3, 30, 6)); // T62: a rect 10 high drew 27.9 px
-    expect(items[0]!.line_thickness).toBe(1);
+    expect(items[0]!.line_thickness).toBe(3); // nui_touch.nss divides it, as the proven module helper did
     expect(pw.binds.r).toEqual([N.NuiRect(3, 3, 3, 3)]);
   });
 });
@@ -335,6 +339,82 @@ describe("the portable-margins export (NUI-MOBILE-060)", () => {
   });
 });
 
+describe("nui_touch.nss and the preview agree (the window a touch client gets, as iOS builds it)", () => {
+  const src = readFileSync(join(ROOT, "nss", "nui_touch.nss"), "latin1");
+  const touched = (d: ReturnType<typeof doc>, p: ReturnType<typeof clientProfile>) => ({ ...d, window: touchWindow(d.window, p).window });
+
+  it("has the script's numbers", () => {
+    const consts = new Map([...src.matchAll(/^const float NUI_TOUCH_(\w+) = ([\d.]+);/gm)].map((m) => [m[1]!, Number(m[2])]));
+    for (const [k, v] of Object.entries(NUI_TOUCH)) expect(consts.get(k), k).toBe(v);
+    // Sizes are divided by the density, the position by d / s.
+    expect(src).toMatch(/return _NuiTouch_Divide\(jElem, fD\);/);
+    expect(src).toMatch(/float fD = NuiTouch_Density\(oPC\);\n    SetLocalFloat/);
+  });
+
+  it("divides draw coordinates by d, not d / s: a rect 32 high previews 32 high at s = 1.6 (and 1.0)", () => {
+    for (const s of [1, 1.6]) {
+      const p = clientProfile("ios3", s);
+      const win = N.NuiWindow(zero(N.NuiDrawList(zero(N.NuiSpacer()), false, [N.NuiDrawListRect(true, null, true, 1, N.NuiRect(0, 0, 100, 32))])), "T", N.NuiRect(0, 0, 200, 100));
+      const sent = (touchWindow(win, p).window.root as JsonObject).draw_list as JsonObject[];
+      expect((sent[0]!.rect as JsonObject).h).toBeCloseTo(32 / 3); // 32 / d (17.07 = 32 / 1.875 drew 1.6 times too high)
+      const pw = pointWindow(touchWindow(win, p).window, {}, p)!;
+      expect((((pw.window.root as JsonObject).draw_list as JsonObject[])[0]!.rect as JsonObject).h).toBeCloseTo(32);
+    }
+  });
+
+  it("lays a portable window out as the desktop does, at s = 1.0 and 1.6", () => {
+    const head = zero(label(30));
+    const a = zero(N.NuiHeight(N.NuiWidth(N.NuiLabel(N.NuiBind("a"), 1, 0), 60), 30));
+    const b = zero(N.NuiHeight(N.NuiWidth(N.NuiLabel(N.NuiBind("b"), 1, 0), 80), 30));
+    const list = zero(N.NuiHeight(N.NuiWidth(N.NuiList([N.NuiListTemplateCell(a, 60, false), N.NuiListTemplateCell(zero(N.NuiSpacer()), 2, false), N.NuiListTemplateCell(b, 80, false)], 3, 30), 300), 200));
+    const tail = zero(label(30));
+    const d = doc(zero(N.NuiCol([head, list, tail])), N.NuiRect(100, 50, 400, 400), { a: ["1", "2", "3"], b: ["x", "y", "z"] });
+    const dk = desk(d);
+    // The touch window is a copy: its elements are found by a tag the copies keep.
+    [head, a, b, list, tail].forEach((e, i) => (e.tag = i));
+    const find = (r: ReturnType<typeof desk>, e: JsonObject) => r.outlines.filter((o) => o.elem.tag === e.tag);
+    const rel = (r: ReturnType<typeof desk>, e: JsonObject) => {
+      const [x, y, w, h] = find(r, e)[0]!.rect;
+      return [x - r.windowRect[0], y - r.windowRect[1], w, h];
+    };
+    for (const s of [1, 1.6]) {
+      const p = clientProfile("ios3", s);
+      const ios = lay(touched(d, p), p);
+      expect(refused(ios), `s ${s}`).toBe(false);
+      // Placed where the desktop places it: the position divided by d / s, multiplied back by the client.
+      expect(ios.windowRect.slice(0, 2), `s ${s}`).toEqual(dk.windowRect.slice(0, 2));
+      for (const e of [head, list, tail]) expect(rel(ios, e), `s ${s}`).toEqual(rel(dk, e));
+      // List rows and cells: the desktop's heights and widths (the thin spacer cell is dropped).
+      for (const e of [a, b]) {
+        const cellsOf = (r: ReturnType<typeof desk>) => find(r, e).map((o) => o.rect.slice(2));
+        expect(cellsOf(dk).length).toBe(3);
+        expect(cellsOf(ios), `s ${s}`).toEqual(cellsOf(dk));
+      }
+    }
+  });
+
+  it("grows controls with a set height, what holds them, and the window (2 (d - 1) / s)", () => {
+    const btn = () => N.NuiHeight(N.NuiButton("b"), 32);
+    const root = N.NuiCol([N.NuiHeight(N.NuiRow([btn(), btn()]), 40), btn(), N.NuiList([N.NuiListTemplateCell(btn(), 50, false)], 1, 32)]);
+    for (const [s, g] of [[1, 4], [1.6, 2.5]] as const) {
+      const [out, grown] = growControls(root, (2 * (3 - 1)) / s);
+      expect(grown).toBeCloseTo(2 * g); // the row's (one button) and the button below it; the list scrolls
+      const kids = (out as JsonObject).children as JsonObject[];
+      expect(kids[0]!.height).toBeCloseTo(40 + g);
+      expect(kids[1]!.height).toBeCloseTo(32 + g);
+      expect(kids[2]!.row_height).toBeCloseTo(32 + g);
+      const p = clientProfile("ios3", s);
+      const t = touchWindow(N.NuiWindow(root, "T", N.NuiRect(-1, -1, 300, 200)), p);
+      expect(t.grown).toBeCloseTo(2 * g);
+      expect(t.window.geometry).toEqual(touchRect(p, -1, -1, 300, 200, t.grown));
+      expect(t.window.geometry).toMatchObject({ x: 20, y: 20 });
+    }
+    // Desktop and Android: unchanged.
+    const win = N.NuiWindow(root, "T", N.NuiRect(-1, -1, 300, 200));
+    expect(touchWindow(win, clientProfile("desktop", 1.6)).window).toBe(win);
+  });
+});
+
 describe("nui_touch.nss", () => {
   const src = readFileSync(join(ROOT, "nss", "nui_touch.nss"), "latin1");
   it("is a resref, ASCII, and carries the spec's numbers", () => {
@@ -366,6 +446,6 @@ describe("nui_touch.nss", () => {
     // Throws (with the compiler's output) when it does not compile.
     execFileSync("nwn_script_comp", ["--root", game!, "-y", "-d", dir, "-c", join(dir, "nuid_touch_t.nss")], { encoding: "utf8", stdio: "pipe" });
     expect(readdirSync(dir)).toContain("nuid_touch_t.ncs");
-    expect(readFileSync(join(dir, "nuid_touch_t.nss"), "latin1")).toContain("NuiTouch_Rect(oPC, -1.0, -1.0, 300.0, 200.0)");
+    expect(readFileSync(join(dir, "nuid_touch_t.nss"), "latin1")).toContain("NuiTouch_Rect(oPC, -1.0, -1.0, 300.0, 200.0, NuiTouch_Grown(oPC))");
   }, 60_000);
 });

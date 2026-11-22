@@ -555,8 +555,9 @@ against the stock's: lines that vanish, stray lines, breaks, one-pixel steps and
 
 ## Mobile clients
 
-The iOS client multiplies margins, list row heights, cell widths, draw-list coordinates and the window position by
-its screen density, and base-game TGA images draw black in NUI on iOS and Android
+The iOS client multiplies margins, list row heights, cell widths and draw-list coordinates by its screen density
+(whatever the GUI scale) and the window position by its density over the GUI scale, and base-game TGA images draw
+black in NUI on iOS and Android
 ([nwn-nui-spec](https://github.com/plenarius/nwn-nui-spec/blob/main/spec/mobile.md)). The toolbar's **Client**
 previews a window as iOS builds it (refusals included), the **Mobile checks** list what will break
 (`pnpm check --mobile`), the export can write **portable margins** (margin 0 and spacers), and

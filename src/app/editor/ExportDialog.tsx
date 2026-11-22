@@ -114,7 +114,7 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
               <label className="inline" title="iOS multiplies every margin by its screen density (NUI-MOBILE-021): write margin 0 on every element and the gaps as spacers. docs/MOBILE.md">
                 <input type="checkbox" checked={!!x.portableMargins} onChange={(e) => setFlag("portableMargins", e.target.checked)} /> Portable margins (margin 0 and spacers, for iOS)
               </label>
-              <label className="inline" title="The skeleton builds the window per player through nui_touch.nss: list row heights, cell widths and draw coordinates divided by the player's density factor, placed at the top left on touch clients, the iOS frame's extra size added. docs/MOBILE.md">
+              <label className="inline" title="The skeleton builds the window per player through nui_touch.nss: controls grown and list cells narrowed for the iOS frame and inset, list row heights, cell widths and draw coordinates divided by the player's density, the position by density / UI scale, -1 windows at the top left, the iOS frame's extra size added. docs/MOBILE.md">
                 <input type="checkbox" checked={!!x.touch} disabled={!skeleton} onChange={(e) => setFlag("touch", e.target.checked)} /> Scale for touch clients (nui_touch)
               </label>
               <div className="note">
@@ -135,7 +135,7 @@ export function ExportDialog({ doc, ed, onClose, problems }: { doc: EditorDoc; e
                     <button className="small" onClick={() => { downloadBytes(cp1252(NUI_TOUCH), "nui_touch.nss"); ed.toast("Downloaded nui_touch.nss", "ok"); }}>
                       <Icon name="export" size={12} /> nui_touch.nss
                     </button>
-                    , call <code>NuiTouch_StartProbe(oPC)</code> at login and <code>NuiTouch_HandleEvent()</code> first in the NUI event script. Its numbers come from one iPhone and one Android tablet.
+                    , call <code>NuiTouch_StartProbe(oPC, sEventScript, sThen)</code> at login (open windows from <code>sThen</code>) and <code>NuiTouch_HandleEvent()</code> first in the NUI event script. Its numbers come from one iPhone and one Android tablet.
                   </p>
                 )}
                 <p className="muted">Saved in the Windows-1252 encoding the compiler reads.</p>

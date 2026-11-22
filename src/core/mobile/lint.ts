@@ -84,7 +84,7 @@ const centred: StyleRule = {
     if (!odd.length) return;
     report(
       null,
-      `geometry ${odd.map((k) => `${k} = ${g[k]}`).join(", ")}: on iOS the client works the position out in pixels and reads it as points, so the window lands in the bottom-right corner, mostly off-screen (NUI-MOBILE-027). Place it explicitly, at a position divided by the player's density factor (nui_touch.nss, NuiTouch_Rect)`,
+      `geometry ${odd.map((k) => `${k} = ${g[k]}`).join(", ")}: on iOS the client works the position out in pixels and reads it as points, so the window lands in the bottom-right corner, mostly off-screen (NUI-MOBILE-027). Place it explicitly, at a position divided by the player's position factor d / s (nui_touch.nss, NuiTouch_Rect)`,
       "warning",
       "geometry",
     );
@@ -122,7 +122,7 @@ const thinCell: StyleRule = {
 const scaling: StyleRule = {
   id: "mobile-scaling",
   title: "Scale lists and drawings per player",
-  summary: "List row heights, template cell widths and draw-list coordinates are multiplied by the density on iOS: divide them by the player's factor when the window is built (NUI-MOBILE-022, -023, -025, -060).",
+  summary: "List row heights, template cell widths and draw-list coordinates are multiplied by the density on iOS, whatever the GUI scale: divide them by the player's density when the window is built (NUI-MOBILE-022, -023, -025, -060).",
   check(ctx, report) {
     const root = rootOf(ctx);
     if (!root) return;
@@ -137,7 +137,7 @@ const scaling: StyleRule = {
     if (!what.size) return;
     report(
       null,
-      `its ${[...what].join(", ")} are right on the desktop and Android, and multiplied by the density on iOS (3 times on an iPhone; NUI-MOBILE-022, -023, -025). Build the window per player: measure the client once (the density probe) and divide them by its factor, as nui_touch.nss's NuiTouch_Layout does (NUI-MOBILE-060)`,
+      `its ${[...what].join(", ")} are right on the desktop and Android, and multiplied by the density on iOS (3 times on an iPhone, at every GUI scale; NUI-MOBILE-022, -023, -025). Build the window per player: measure the client once (the density probe) and divide them by its density d, not by d / s, as nui_touch.nss's NuiTouch_Layout does (NUI-MOBILE-060)`,
       "info",
     );
   },
