@@ -34,6 +34,7 @@ This is an independent project. It is not made or endorsed by Beamdog, and it co
 - [The built-in skins](#the-built-in-skins)
 - [Command line](#command-line)
 - [Export a full theme: the original GUI too](#export-a-full-theme-the-original-gui-too)
+- [Mobile clients](#mobile-clients)
 - [How close to the client](#how-close-to-the-client)
 - [Known limits](#known-limits)
 - [Contributing](#contributing)
@@ -472,7 +473,7 @@ file it cannot read. A hak's name must be at most 16 characters.
 ### Check windows (for CI)
 
 ```bash
-pnpm check [--style ID|FILE] [--fail-on error|warning|info] [--format text|json|github] FILES_OR_FOLDERS...
+pnpm check [--style ID|FILE] [--mobile] [--client CLIENT] [--fail-on error|warning|info] [--format text|json|github] FILES_OR_FOLDERS...
 ```
 
 ![A terminal: pnpm check on a clean window ("no problems found", exit 0), then on a window with nine warnings run
@@ -492,7 +493,9 @@ reported as an error of that file. It exits with 1 when anything at or above `--
 | Option | Meaning |
 |---|---|
 | `--style ID\|FILE` | A house style: a built-in one (`layonara`), the id of a style file from the `styles` setting, or a style file's path ([Your own house style](#your-own-house-style)); default none, as in the editor |
-| `--disable-rule ID` | Turn one of its rules off (repeat) |
+| `--disable-rule ID` | Turn one of its rules off, or a mobile rule (repeat) |
+| `--mobile` | Also run the [mobile checks](docs/MOBILE.md#checks) |
+| `--client CLIENT`, `--ui-scale S` | Lay the windows out as `desktop` (default), `ios2`, `ios3` (iOS at density 2 or 3) or `android`, at GUI scale `S` (default 1), as the editor's Client preview; any but `desktop` turns `--mobile` on |
 | `--fail-on LEVEL` | `error` (default), `warning` or `info` |
 | `--format FORMAT` | `text` (default); `json`, one object on stdout with every issue; `github`, a GitHub Actions annotation per row on the window's file, the text report in a folded group, and a summary table in `$GITHUB_STEP_SUMMARY` |
 | `--canvas WxH`, `--text-model` | As for `pnpm render` (default `1440x900`, `nuklear`) |
@@ -549,6 +552,17 @@ that fills previewed, the old GUI's fonts replaced as a set. They pass on `expor
 the original GUI from your game, stock beside the theme (every `.gui` layout, the panels the client builds in code on
 their hooks, lists with a selected and a hovered row, every bar at 0, 40 and 100 %), and checks the theme's frames
 against the stock's: lines that vanish, stray lines, breaks, one-pixel steps and stubs.
+
+## Mobile clients
+
+The iOS client multiplies margins, list row heights, cell widths and draw-list coordinates by its screen density
+(whatever the GUI scale) and the window position by its density over the GUI scale, and base-game TGA images draw
+black in NUI on iOS and Android
+([nwn-nui-spec](https://github.com/plenarius/nwn-nui-spec/blob/main/spec/mobile.md)). The toolbar's **Client**
+previews a window as iOS builds it (refusals included), the **Mobile checks** list what will break
+(`pnpm check --mobile`), the export can write **portable margins** (margin 0 and spacers), and
+[`nss/nui_touch.nss`](nss/nui_touch.nss) scales a window per player in game. How, and what the numbers rest on:
+[docs/MOBILE.md](docs/MOBILE.md).
 
 ## How close to the client
 

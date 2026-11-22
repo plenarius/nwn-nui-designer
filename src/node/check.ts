@@ -2,7 +2,7 @@
  * Checks NUI windows from the command line: for each window, exactly what the editor's Problems panel lists
  * (core/edit/lint.ts: the client checks, the layout's problems, and the house style when one is chosen), for CI.
  *
- *   pnpm check [--style ID|FILE] [--fail-on warning|error] [--format text|json|github] FILE_OR_FOLDER...
+ *   pnpm check [--style ID|FILE] [--mobile] [--client CLIENT] [--fail-on warning|error] [--format text|json|github] FILE_OR_FOLDER...
  *
  * Inputs: window files (.jui, window JSON, a nui-preview dump, a project); a folder is searched (with its subfolders)
  * for .jui and .json files. Paths are taken from the folder pnpm was started in (`pnpm -C DIR check` too).
@@ -10,7 +10,11 @@
  * Options:
  *   --style ID|FILE       a house style: a built-in one (layonara), a style file's id from nui-designer.ini's
  *                         `styles` (or $NUI_DESIGNER_STYLES), or a style file's path; default none, as in the editor
- *   --disable-rule ID     turn one of its rules off (repeat)
+ *   --disable-rule ID     turn one of its rules off, or one of the mobile rules (repeat)
+ *   --mobile              also run the mobile checks: what breaks on the iOS and Android clients (docs/MOBILE.md)
+ *   --client CLIENT       lay the windows out as desktop (default), ios2, ios3 (iOS at density 2 or 3) or android, as
+ *                         the editor's Client preview does; any but desktop turns --mobile on
+ *   --ui-scale S          the GUI scale for --client (default 1)
  *   --fail-on LEVEL       exit 1 when anything at or above LEVEL is found: error (default), warning or info
  *   --format FORMAT       text (default), json (one JSON object on stdout) or github (GitHub Actions annotations
  *                         and a summary, also written to $GITHUB_STEP_SUMMARY when set)
@@ -40,6 +44,8 @@ import { HakOrderError } from "./hakorder.js";
 import { checkReadable, nodeCanvas } from "./fs.js";
 import { type CliResourcesUsed, cliResources } from "./setup.js";
 import { resolveStyle } from "./styles.js";
+import { CLIENT_KINDS, type ClientKind, clientProfile } from "../core/mobile/client.js";
+import { MOBILE_RULES, imageRiskOf } from "../core/mobile/lint.js";
 
 /** Stops with a one-line message (no stack trace) and exit code 2. */
 export class UsageError extends Error {}
@@ -195,6 +201,9 @@ export async function main(argv: string[], out: (s: string) => void = console.lo
     options: {
       style: { type: "string" },
       "disable-rule": { type: "string", multiple: true },
+      mobile: { type: "boolean" },
+      client: { type: "string", default: "desktop" },
+      "ui-scale": { type: "string", default: "1" },
       "fail-on": { type: "string", default: "error" },
       format: { type: "string", default: "text" },
       canvas: { type: "string", default: `${DEFAULT_CANVAS[0]}x${DEFAULT_CANVAS[1]}` },
@@ -231,9 +240,16 @@ export async function main(argv: string[], out: (s: string) => void = console.lo
       throw new UsageError(e instanceof Error ? e.message : String(e));
     }
   }
+  const clientKind = values.client as ClientKind;
+  if (!CLIENT_KINDS.some((c) => c.kind === clientKind)) throw new UsageError(`--client ${values.client}: expected ${CLIENT_KINDS.map((c) => c.kind).join(", ")}`);
+  const uiScale = Number(values["ui-scale"]);
+  if (!(uiScale > 0)) throw new UsageError(`--ui-scale ${values["ui-scale"]}: expected a number above 0`);
+  const client = clientKind === "desktop" ? null : clientProfile(clientKind, uiScale);
+  const mobile = !!values.mobile || !!client;
   const disabled = new Set(values["disable-rule"] ?? []);
   for (const d of disabled) {
-    if (!style) throw new UsageError(`--disable-rule ${d}: no --style chosen`);
+    if (mobile && MOBILE_RULES.rules.some((r) => r.id === d)) continue;
+    if (!style) throw new UsageError(`--disable-rule ${d}: no --style chosen${mobile ? ` and no mobile rule of that id (${MOBILE_RULES.rules.map((r) => r.id).join(", ")})` : ""}`);
     if (!style.rules.some((r) => r.id === d)) throw new UsageError(`--disable-rule ${d}: ${style.id} has no such rule (${style.rules.map((r) => r.id).join(", ")})`);
   }
   const [cw, ch] = parseCanvas(values.canvas!);
@@ -253,6 +269,7 @@ export async function main(argv: string[], out: (s: string) => void = console.lo
   );
   const usedText = [...usedLines(used, res.skinFrom, style?.id ?? null), ...res.warnings.map((w) => `warning: ${w}`)];
   const fonts = res.skin.fontList.map((f) => f.name);
+  const imageRisk = mobile && !res.usingFallback ? imageRiskOf(res.resman) : null;
   // Where the run's notes go: stderr for json (stdout is the JSON), stdout otherwise.
   const info = format === "json" ? err : out;
   for (const u of usedText) info(format === "github" && u.startsWith("game: none") ? `::notice title=NUI check::${escData(u)}` : u);
@@ -265,8 +282,8 @@ export async function main(argv: string[], out: (s: string) => void = console.lo
     let report: WindowReport;
     try {
       const doc = openText(readFileSync(file, "utf8"), name).doc;
-      const r = await renderView(toNuiDocument(doc), res.skin, res.images, nodeCanvas, { canvasW: cw, canvasH: ch, crop: true });
-      const findings = windowFindings({ win: doc.window, binds: doc.binds, name: doc.name, fonts, style, disabledRules: disabled, outlines: r.outlines });
+      const r = await renderView(toNuiDocument(doc), res.skin, res.images, nodeCanvas, { canvasW: cw, canvasH: ch, crop: true, client });
+      const findings = windowFindings({ win: doc.window, binds: doc.binds, name: doc.name, fonts, style, disabledRules: disabled, outlines: r.outlines, mobile, imageRisk });
       report = { file: shown, name: doc.name, issues: windowIssues(doc.window, doc.binds, r.problems, pathIndex(doc.window), findings) };
     } catch (e) {
       report = { file: shown, name, issues: [{ severity: "error", source: "input", kind: "not a window", text: `cannot check it: ${errorText(e)}`, path: null, where: "file" }] };

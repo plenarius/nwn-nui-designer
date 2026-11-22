@@ -153,6 +153,39 @@ Still open, in the order they are planned:
 - No per-window rule exemptions from the command line (a rule's `exempt` list is the place).
 - Annotations go on the dump's file; a dump is not mapped back to the script that builds it.
 
+## Mobile clients
+
+From the nwn-nui-spec's measurements ([MOBILE.md](MOBILE.md)): one iPhone at density 3 and one Android tablet.
+
+- **Density 2 is not measured.** Its multipliers are taken to follow the same rule as density 3 (d for sizes,
+  d / s for the position); the frame's extra and the list inset are the density-3 numbers scaled by (d - 1) / 2,
+  the narrowest cell by d / 3, guesses. `nui_touch.nss` makes the same guess for the frame.
+- **The probe cannot tell iOS at a GUI scale equal to its density** (d = s, say density 2 at scale 2.0) from a
+  desktop: it measures the position factor d / s, which is then 1, but the client still multiplies sizes by d. The
+  preview shows such a client as iOS; `nui_touch.nss` treats it as a desktop.
+- **Row spacing in `nui_touch.nss`.** iOS spaces list rows 4 d screen pixels apart (NUI-MOBILE-022: 12 px on an
+  iPhone at s = 1.0 and 1.6, about 7.5 units at 1.6), and the preview does so; `NuiTouch_FitRows` (from a helper used
+  on an iPhone) still counts the desktop's 4 units, so at s > 1 it may fit a row more than the list holds.
+- **The narrowest list cell** (about 11 px at s = 1.0, T61) is taken to be in the cells' own space (11 units at any
+  GUI scale), not fixed in screen pixels; only s = 1.0 was measured.
+- **The iOS frame's extra is a fit through two GUI scales** (K / s²); a large window needed about 10 more height at
+  1.6 (the spec's T73, cause unknown). The preview takes the fit without the 6 units of slack.
+- **Not modelled in the preview:** the iOS button frame drawn about 10 px inside its box (NUI-MOBILE-031) and
+  right-aligned text on it (-032), padding (not measured), and the first list cell drawing a little wider than
+  3 x its width (T60). `nui_touch.nss` grows such controls; the preview shows them that much taller.
+- **Bound values** of draw-list coordinates are multiplied in the preview; bound row heights and cell widths do not
+  exist (NUI does not bind them).
+- **Images in list rows (`mobile-list-image`, NUI-MOBILE-052)** were measured only as a cell of the row template
+  on iOS. An image nested deeper in a cell (in a row, column or group) is taken to break the same way and is
+  flagged too; Android is not measured (it had none of iOS's layout issues). The preview hides such images on iOS
+  but does not draw the broken row.
+- **`mobile-tga` needs the game**, and checks only static resrefs and bind samples, not resrefs a script picks at
+  run time.
+- **Portable margins** keep fixed layouts exactly; where flexible elements share room the solver can settle a
+  little differently (spans fit their children at medium strength), and a list cell's content fills its cell.
+- **The probe in `nui_touch.nss` has not been run on a server by this repository's tests** (it compiles); its
+  method is the spec's (prb_clamp, prb_clampev).
+
 ## Speed
 
 Editor redraws took about 90–210 ms (a desktop) per Alt+arrow press on a large window. Solved layouts, the screen
