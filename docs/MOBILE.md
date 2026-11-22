@@ -77,8 +77,8 @@ The bind `icon` stays an array of resrefs, one per row, as it was for the image.
 ### Preview
 
 The toolbar's **Client** picks Desktop, iOS (density 2), iOS (density 3) or Android, with the **UI scale** as the
-GUI scale. On iOS the canvas lays the window out as the client does (`src/core/mobile/`): margins, row heights, row
-spacing, cell widths (at least 11 units) and draw coordinates multiplied by d, the window placed in points
+GUI scale. On iOS the canvas lays the window out as the client does (`src/core/mobile/`): margins, row heights, cell
+widths (at least 11 units) and draw coordinates multiplied by d, the row spacing 4 d screen pixels, the window placed in points
 (its position multiplied by d / s; a -1 window in the bottom-right corner), the frame's extra (32 / s² wide and 66 / s² high at density 3) taken from the
 content, and the list inset at 14 px. Images in list rows are hidden, as iOS never draws them (the broken layout of the
 row is not drawn; the check reports it). A window the client would refuse shows its refusal in the problems list.

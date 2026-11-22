@@ -4,7 +4,7 @@
  * tables/mobile.yaml, build 89.8193.37-17). Rule ids (NUI-MOBILE-0xx) are cited where each number is used.
  *
  * iOS applies two factors, in GUI units: the window's position is in points, multiplied by fp = d / s
- * (NUI-MOBILE-026); margins, list row heights and row spacing, template cell widths and draw-list coordinates are
+ * (NUI-MOBILE-026); margins, list row heights, template cell widths and draw-list coordinates are
  * multiplied by fd = d alone, whatever the GUI scale (NUI-MOBILE-020 to -025; measured on an iPhone at s = 1.0 and
  * 1.6: a draw rect sent 32 / 1.875 high drew 17.07 x 3 units, and nui_touch.nss's division by d gives the desktop
  * size back at both scales). At s = 1.0 the two factors are equal.
@@ -34,7 +34,7 @@ export const MOBILE = {
   minCellPx: 11,
   /** Fixed template cells narrower than this (GUI units) are thin: multiplied by d = 3 they reach the 11 minimum. */
   thinCell: 4,
-  /** The desktop list row spacing (NUI-LIST-003); iOS multiplies it by d (NUI-MOBILE-022). */
+  /** The desktop list row spacing (NUI-LIST-003); on iOS it is 4 d screen pixels, 4 d / s units (NUI-MOBILE-022). */
   rowSpacing: 4,
   /** The desktop list inset (NUI-LIST-002), and iOS's in screen pixels at density 3 (NUI-MOBILE-033, T68). */
   listInset: 4,
@@ -100,7 +100,8 @@ export function clientProfile(kind: ClientKind, scale = 1): ClientProfile {
     minCell: (MOBILE.minCellPx * d) / MOBILE.measuredDensity,
     // Fixed in screen pixels: 14 / s (NUI-MOBILE-033, measured at both scales).
     listInset: insetPx / s,
-    rowSpacing: MOBILE.rowSpacing * d,
+    // Fixed in screen pixels: 4 d px, 4 d / s units (NUI-MOBILE-022; 12 px at s 1.0 and 1.6, T74).
+    rowSpacing: (MOBILE.rowSpacing * d) / s,
     frameExtra: [(MOBILE.frameK.w * k) / (s * s), (MOBILE.frameK.h * k) / (s * s)],
   };
 }

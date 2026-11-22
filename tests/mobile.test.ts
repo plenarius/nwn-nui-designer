@@ -55,7 +55,7 @@ describe("client profiles (tables/mobile.yaml)", () => {
     const at16 = clientProfile("ios3", 1.6);
     expect(at16.fp).toBeCloseTo(1.875);
     // Sizes are multiplied by d whatever the GUI scale (a draw rect sent 32 / 1.875 high drew 82 px = 17.07 x 3 x 1.6).
-    expect(at16).toMatchObject({ fd: 3, rowSpacing: 12, minCell: 11 });
+    expect(at16).toMatchObject({ fd: 3, rowSpacing: 7.5, minCell: 11 }); // 12 px at s 1.6 (T74)
     expect(at16.listInset).toBeCloseTo(8.75); // about 8.7 measured (T68)
     expect(at16.frameExtra[0]).toBeCloseTo(12.5); // 12 measured (T65)
     expect(at16.frameExtra[1]).toBeCloseTo(25.8, 1); // about 28 measured (T65)

@@ -163,8 +163,9 @@ From the nwn-nui-spec's measurements ([MOBILE.md](MOBILE.md)): one iPhone at den
 - **The probe cannot tell iOS at a GUI scale equal to its density** (d = s, say density 2 at scale 2.0) from a
   desktop: it measures the position factor d / s, which is then 1, but the client still multiplies sizes by d. The
   preview shows such a client as iOS; `nui_touch.nss` treats it as a desktop.
-- **Row spacing at s = 1.6 is not measured.** The preview takes it as 4 d (12 on an iPhone, NUI-MOBILE-022 at
-  s = 1.0) like the other sizes; `nui_touch.nss`'s `NuiTouch_FitRows` (from a helper used on an iPhone) counts 4.
+- **Row spacing in `nui_touch.nss`.** iOS spaces list rows 4 d screen pixels apart (NUI-MOBILE-022: 12 px on an
+  iPhone at s = 1.0 and 1.6, about 7.5 units at 1.6), and the preview does so; `NuiTouch_FitRows` (from a helper used
+  on an iPhone) still counts the desktop's 4 units, so at s > 1 it may fit a row more than the list holds.
 - **The narrowest list cell** (about 11 px at s = 1.0, T61) is taken to be in the cells' own space (11 units at any
   GUI scale), not fixed in screen pixels; only s = 1.0 was measured.
 - **The iOS frame's extra is a fit through two GUI scales** (K / s²); a large window needed about 10 more height at
