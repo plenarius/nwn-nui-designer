@@ -153,6 +153,26 @@ Still open, in the order they are planned:
 - No per-window rule exemptions from the command line (a rule's `exempt` list is the place).
 - Annotations go on the dump's file; a dump is not mapped back to the script that builds it.
 
+## Mobile clients
+
+From the nwn-nui-spec's measurements ([MOBILE.md](MOBILE.md)): one iPhone at density 3 and one Android tablet.
+
+- **Density 2 is not measured.** Its multipliers follow f = d / s; the frame's extra and the list inset are the
+  density-3 numbers scaled by (d - 1) / 2, a guess. `nui_touch.nss` makes the same guess for the frame.
+- **The iOS frame's extra is a fit through two GUI scales** (K / s²); a large window needed about 10 more height at
+  1.6 (the spec's T73, cause unknown). The preview takes the fit without the 6 units of slack.
+- **Not modelled in the preview:** the iOS button frame drawn about 10 px inside its box (NUI-MOBILE-031) and
+  right-aligned text on it (-032), padding (not measured), and the first list cell drawing a little wider than
+  3 x its width (T60).
+- **Bound values** of draw-list coordinates are multiplied in the preview; bound row heights and cell widths do not
+  exist (NUI does not bind them).
+- **`mobile-tga` needs the game**, and checks only static resrefs and bind samples, not resrefs a script picks at
+  run time.
+- **Portable margins** keep fixed layouts exactly; where flexible elements share room the solver can settle a
+  little differently (spans fit their children at medium strength), and a list cell's content fills its cell.
+- **The probe in `nui_touch.nss` has not been run on a server by this repository's tests** (it compiles); its
+  method is the spec's (prb_clamp, prb_clampev).
+
 ## Speed
 
 Editor redraws took about 90–210 ms (a desktop) per Alt+arrow press on a large window. Solved layouts, the screen

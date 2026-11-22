@@ -17,6 +17,7 @@ the two (see [Fidelity](#fidelity)).
 - [Window editor](#window-editor)
 - [Problems and house style](#problems-and-house-style)
 - [Export: `.jui` and NWScript](#export-jui-and-nwscript)
+- [Mobile clients](#mobile-clients)
 - [Skin editor](#skin-editor)
 - [Local settings and the local API](#local-settings-and-the-local-api)
 - [The check command](#the-check-command)
@@ -288,6 +289,28 @@ would make the code harder to read for no visible gain.
 
 **Round trip**: every window exported as a `.jui` and read back is the same model (every key, in order), binds,
 layout, problems and pixels (`tests/export.test.ts`; `pnpm roundtrip` with a game).
+
+## Mobile clients
+
+What the iOS and Android clients do differently is the nwn-nui-spec's (NUI-MOBILE rules; summary and use in
+[docs/MOBILE.md](docs/MOBILE.md)). `src/core/mobile/` holds all of it:
+
+- **The numbers in one table** (`client.ts`, `MOBILE`), from the spec's `tables/mobile.yaml`, each cited by rule.
+- **The preview rewrites a copy of the JSON, not the layout engine** (`transform.ts`): margins, row heights, cell
+  widths and draw coordinates multiplied by f, which is what the client does to the same JSON, so the solver and the
+  golden-checked desktop path stay as they are. The copies are kept per window and client, so the layout cache still
+  finds the same objects, and each maps back to the editor's element (`preview.ts`). What is not in the JSON (the
+  window position in points, the list inset and row spacing, the frame's extra) is a `RenderClient` the renderer
+  takes; unset, it is the desktop's, so Desktop and Android draw byte for byte as before (`tests/mobile.test.ts`).
+- **The checks are a rule set shaped like a style** (`lint.ts`), so the editor's dialog and `--disable-rule` turn
+  them off one by one; they are not a style, so they run beside a house style. Off by default (most windows are for
+  the desktop), on while the preview shows a mobile client.
+- **Portable margins rebuild each margin from spacers** (`portable.ts`): along a span, fixed gaps; across it, the
+  span (or a child with a bigger margin) between two spacers, with the element's fixed sizes copied to the wrapper so
+  it stays as rigid. Fixed gaps are spacers unless the span has spacers of its own, where empty spans keep them out
+  of the spacers' equal-size rule. List cells get no spacer cells (the spec's thin-cell rule).
+- **`nss/nui_touch.nss` is a file of the repository**, not generated: a module includes it as it is, and it is
+  compiled in `pnpm test` when the compiler and a game are there.
 
 ## Skin editor
 

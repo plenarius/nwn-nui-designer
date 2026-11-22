@@ -156,7 +156,8 @@ The ignored folder `local/` holds inputs that must never be committed:
 ## Code layout
 
 `src/core` is everything that is not UI (no DOM, no Node, no framework); `src/app` is the React editor; `src/node` the
-Node file access, the local API and the CLIs; `tests/`, `golden/` and `fixtures/` the checks; `assets/skin/` the
+Node file access, the local API and the CLIs; `nss/` NWScript a module includes (`nui_touch.nss`, MIT, compiled by
+`pnpm test` when it can); `tests/`, `golden/` and `fixtures/` the checks; `assets/skin/` the
 generated built-in skins; `tools/open-skin/` the fonts' pins and Python research tools. The module map, file by file:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#module-map).
 
