@@ -66,8 +66,6 @@ export const LINE_SPACING = 4;
  */
 export const TOOLTIP_PAD = 16;
 export const TOOLTIP_MOUSE_X = 21;
-// The client's text edit starts its text 11 px in (docs/CLIENT-BEHAVIOUR.md; 3 px past the 8 measured before).
-export const EDIT_PAD_X = 11;
 /**
  * The open list of a combo (nk_combo_callback; docs/CLIENT-BEHAVIOUR.md#combo-boxes): a popup from the combo's left edge,
  * overlapping its bottom by the combo border (style.window.combo_border: the border image's slice margin + 1, 4 px), as
@@ -306,7 +304,8 @@ export class Renderer {
     let py = Math.ceil(y - 0.5);
     let img = withAlpha(im, alpha);
     if (clip) {
-      const [cx0, cy0, cx1, cy1] = clip.map(pyRound) as ClipBox;
+      // The clip box rounds as placement does, or a window on a half pixel loses its outer row and column.
+      const [cx0, cy0, cx1, cy1] = clip.map((v) => Math.ceil(v - 0.5)) as ClipBox;
       const x0 = Math.max(px, cx0);
       const y0 = Math.max(py, cy0);
       const x1 = Math.min(px + img.width, cx1);
@@ -418,6 +417,14 @@ export class Renderer {
     return [tx, tw];
   }
 
+  /** A problem for a key bound to a bind with no sample value: many saved dumps record none, and the client then reads
+   * null (hidden, disabled, nothing drawn) until the script sets it. */
+  private unsetBind(node: LayoutNode, elem: JsonObject, key: string, ctx: Ctx, r: Rect): void {
+    const v = elem[key];
+    if (!isObject(v) || !("bind" in v) || this.value(elem, key, ctx, null) !== null) return;
+    this.problem(node, "unset bind", `${key}: bind \`${pyStr(v.bind)}\` has no sample value: the client ${key === "visible" ? "hides this" : key === "enabled" ? "disables this" : "draws nothing here"} until the script sets it`, r);
+  }
+
   problem(node: { path: string; elem?: JsonObject }, kind: string, text: string, r: Rect): void {
     this.problems.push({ path: node.path, kind, text, rect: r, elem: node.elem });
   }
@@ -505,9 +512,10 @@ export class Renderer {
     if (chrome.header) {
       // The client draws the title bar a pixel taller than the body's offset, so the body's frame covers its last row
       // (seen in game).
-      this.frame("window.header.normal", "nui_windowh", [wx, wy, ww, hh + 1], ctx);
+      // A window the client has just opened has focus, so Nuklear draws its bar with window.header.active and its
+      // title in label_active (docs/CLIENT-BEHAVIOUR.md#window-frame).
+      this.frame("window.header.active", "nui_windowh", [wx, wy, ww, hh + 1], ctx);
       const font = winFont;
-      // A window the client has just opened has focus, so its title takes the active colour (seen in game).
       const label = color(this.skin.get("window.header.label_active", "#FFFFFFFF"));
       const bsize = CHROME.button;
       let right = wx + ww - CHROME.button_right;
@@ -606,6 +614,7 @@ export class Renderer {
     // A bind the script never set reads as null: the client hides the element (docs/CLIENT-BEHAVIOUR.md).
     const visible = this.onUnlessNull(elem, "visible", ctx);
     const enabled = this.onUnlessNull(elem, "enabled", ctx);
+    for (const key of ["visible", "enabled"]) this.unsetBind(n, elem, key, ctx, r);
     const sub: Ctx = { ...ctx, disabled: ctx.disabled || !enabled };
     const t = n.type;
     this.outlines.push({ rect: r, path: n.path, isSpan: SPANS.has(t), visible, type: t, elem, row: ctx.row });
@@ -857,17 +866,19 @@ export class Renderer {
     const font = this.fontOf(e, ctx);
     const val = this.text(e, "value", ctx);
     const multiline = truthy(e.multiline);
+    // Nuklear's edit.padding_x plus the edit's border: 10 + 1 in the stock skin, 11 px in (docs/CLIENT-BEHAVIOUR.md#text).
+    const padX = this.skin.numOf("edit.padding_x", 10) + this.skin.numOf("edit.border", 1);
     if (!val) {
       const ph = this.text(e, "label", ctx);
-      this.textIn(n, ctx, ph, [x, y, w, h], font, PLACEHOLDER, "left", multiline ? "top" : "middle", this.alpha(ctx), EDIT_PAD_X);
+      this.textIn(n, ctx, ph, [x, y, w, h], font, PLACEHOLDER, "left", multiline ? "top" : "middle", this.alpha(ctx), padX);
       return;
     }
     const fill = color(this.skin.get("edit.text_normal", "#FFFFFFFF"));
     if (multiline) {
       // The first line starts 2 px below the box's top (docs/CLIENT-BEHAVIOUR.md).
-      this.wrapped(n, [x + EDIT_PAD_X, y + 2, w - 2 * EDIT_PAD_X, h - 4], ctx, val, font, fill, false);
+      this.wrapped(n, [x + padX, y + 2, w - 2 * padX, h - 4], ctx, val, font, fill, false);
     } else {
-      this.textIn(n, ctx, val, [x, y, w, h], font, fill, "left", "middle", this.alpha(ctx), EDIT_PAD_X);
+      this.textIn(n, ctx, val, [x, y, w, h], font, fill, "left", "middle", this.alpha(ctx), padX);
     }
   }
 
@@ -1172,7 +1183,9 @@ export class Renderer {
     const showBar = scrollbars === 2 || scrollbars === 3 || (scrollbars === 4 && overflow);
     // The rows take the room the scrollbar leaves.
     const rowW = inner[2] - (showBar ? SCROLLBAR : 0);
-    if (showBar) {
+    // A scrollbar the window forces keeps its room, but the client draws none while the rows fit
+    // (docs/CLIENT-BEHAVIOUR.md#layout).
+    if (showBar && overflow) {
       this.scrollbar([x + w - LIST_INSET_X - SCROLLBAR, y + LIST_INSET_Y, SCROLLBAR, h - 2 * LIST_INSET_Y], ctx, inner[3] / Math.max(need, 1));
     }
     const clipR = inner[0] + inner[2] - (showBar ? SCROLLBAR : 0);
@@ -1309,7 +1322,10 @@ export class Renderer {
     if (this.dry && t !== 4 && t !== 5) return; // images and text are checked in rows scrolled out of sight too
     const cv = this.value(it, "color", ctx, null);
     // A colour bound to a bind the script never set reads as null, and the client draws nothing (docs/CLIENT-BEHAVIOUR.md).
-    if (cv === null && isObject(it.color) && "bind" in it.color) return;
+    if (cv === null && isObject(it.color) && "bind" in it.color) {
+      this.unsetBind(n, it, "color", ctx, r);
+      return;
+    }
     const c0 = color(cv ?? {}, [255, 255, 255, 255]);
     // A disabled element's draw list is drawn at half brightness, still opaque: 92,86,71 shows as 46,43,35
     // (docs/CLIENT-BEHAVIOUR.md#draw-lists).

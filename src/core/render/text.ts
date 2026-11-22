@@ -131,7 +131,8 @@ export function textLayer(
   outline = 0.25,
 ): { im: RGBAImage; x: number; y: number } | null {
   if (!text) return null;
-  const [x0, y0, x1, y1] = clip.map((v) => pyRound(v)) as [number, number, number, number];
+  // The clip box rounds as placement does (below), or text on a half pixel loses its edge row and column.
+  const [x0, y0, x1, y1] = clip.map((v) => Math.ceil(v - 0.5)) as [number, number, number, number];
   if (x1 <= x0 || y1 <= y0) return null;
   const { w, h, mask } = lineMask(font, text);
   const top = y + (font.line - (font.ascent + font.descent)) / 2 - 2;

@@ -228,7 +228,8 @@ drawn per window with images.
   none. For a 500 px box the client's wrap width is in [480, 488) [measured]. The designer uses width − 18.
 - **First line**: the first line of a text box starts 2 px below the box's top [measured], and so does a multiline
   text edit's [compared].
-- **Text edit inset**: a text edit's text starts 11 px in from its left edge [compared].
+- **Text edit inset**: a text edit's text starts Nuklear's `edit.padding_x` plus the edit's border in from its left
+  edge, 10 + 1 = 11 px in the stock skin [compared]. The designer reads both from the skin.
 - **Half pixels**: a line of text whose top or left lands on a half pixel goes up and left, as the GPU fills the
   pixels whose centres the glyph quads cover [compared].
 - **Line pitch**: font size + 4 (21 px for a 17 px font) [measured].
@@ -286,8 +287,9 @@ window as wrapped text (`NuiText`).
 - **Whole pixels** [compared]: a span places its children one after another at whole-pixel sizes. Each solved size is
   cut to a whole pixel, and the next child starts where the last one ended: a row of widths 302.6, 176.9 and 64.5 puts
   its third child at 478.
-- **A forced scrollbar** keeps its room, but the client draws none while the content fits: an empty or short list
-  shows a bare column where the bar would be [compared].
+- **A forced scrollbar** in a group or a list keeps its room, but the client draws none while the content fits: an
+  empty or short list shows a bare column where the bar would be [compared]. A text box (`NuiText`) with a forced
+  scrollbar was not in the comparison, and the designer still draws its bar.
 - **Widgets with no width or height** get a default size: see [Default sizes](#default-sizes).
 - **Solutions**: when several solutions are equally good, C++ Kiwi's choice depends on its maps being sorted by
   symbol. JavaScript ports that keep insertion order pick a different one; the designer's vendored Kiwi sorts its maps.
@@ -376,7 +378,8 @@ Measured on an in-game window with a title bar, at GUI scale 1.0 [measured]:
 - The title bar's frame is drawn a pixel taller than 33, so the body's frame covers its last row [compared]. The close
   and collapse buttons are centred in that taller bar.
 - The title starts 8 px in, a pixel further than the frame's 7, and takes `window.header.label_active`: a window the
-  client has just opened has focus [compared].
+  client has just opened has focus [compared]. Nuklear draws a focused window's bar with `window.header.active` too
+  [inferred].
 - So the frame adds **16 px** to the width and **49 px** to the height (33 + 8 + 8).
 - How GUI scale above 1.0 scales layout units, the frame and the slices is not known. The scrollbar thickness is
   multiplied by the scale [code].
@@ -427,7 +430,7 @@ bind is set. The designer draws a bind with its sample value when it has one, el
   ignores that flag for model textures. The designer honours it.
 - **Decoding** [code]: `NkImage::Load` sniffs `DDS ` and `GIF89a`; anything else goes to stb_image (tga, png, jpg).
   GIFs keep 1 to 255 frames and play by each frame's delay, looping. WebM plays through the movie player. Images load
-  in the background with a loading placeholder; a missing one shows a not-found image.
+  in the background with a loading placeholder; a missing one shows the error image (see Missing images below).
 - **Caches** [code]: each window caches images by resref and type (`Nui::Window::GetImageByResRef`). Skin images
   have their own cache, emptied on every skin reload.
 - **Placement** [docs]: `NuiImage(resref, aspect, halign, valign)` with aspect FIT, FILL, FIT100, EXACT, EXACTSCALED or
@@ -473,7 +476,8 @@ From `nw_inc_nui.nss` and `nwscript.nss` [docs], and the client's JSON keys [cod
   `ORDER_AFTER` over it. Render conditions: always, not hovered, hovered, or while the left, right or middle button is
   held. With `scissor` off, drawing can spill outside the element's box [docs].
 - **Binds never set** read as null [compared]: `visible` or `enabled` bound to one hides or disables the element, a
-  draw-list item's `enabled` skips the item, and a draw-list `color` draws nothing.
+  draw-list item's `enabled` skips the item, and a draw-list `color` draws nothing. Many saved dumps record no bind
+  values, so the designer lists each such bind in the problems list ("unset bind").
 - **Events**: the client's strings name click, mousedown, mouseup, mousescroll, blur, watch, unknown-bind and open.
   No hover event is documented or found in the client [code: strings; very likely, not proven].
 
