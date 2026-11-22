@@ -96,8 +96,9 @@ export function widgetSheet(skin: Skin, images: Images, o: SheetOptions): RGBAIm
   const y0 = 30;
   const ww = 330;
   const wh = 210;
-  put("window.header.normal", x0, y0, ww, 33);
-  txt("Window title", x0 + 7, y0 + 8, col("window.header.label_normal"), font, [x0, y0, x0 + ww - 60, y0 + 33]);
+  // A window just opened has focus, so the client draws its title bar active (docs/CLIENT-BEHAVIOUR.md#window-frame).
+  put("window.header.active", x0, y0, ww, 33);
+  txt("Window title", x0 + 7, y0 + 8, col("window.header.label_active"), font, [x0, y0, x0 + ww - 60, y0 + 33]);
   ["close_button", "minimize_button"].forEach((b, i) => put(`window.header.${b}.normal`, x0 + ww - 25 - i * 26, y0 + 8, 16, 16));
   put("window.fixed_background", x0, y0 + 34, ww, wh - 34);
   put("window.border_image", x0, y0 + 34, ww, wh - 34);

@@ -66,7 +66,6 @@ export const LINE_SPACING = 4;
  */
 export const TOOLTIP_PAD = 16;
 export const TOOLTIP_MOUSE_X = 21;
-export const EDIT_PAD_X = 8;
 /**
  * The open list of a combo (nk_combo_callback; docs/CLIENT-BEHAVIOUR.md#combo-boxes): a popup from the combo's left edge,
  * overlapping its bottom by the combo border (style.window.combo_border: the border image's slice margin + 1, 4 px), as
@@ -279,6 +278,13 @@ export class Renderer {
     return truthy(v);
   }
 
+  /** A switch that is on when left out, and off when false or bound to a bind the script never set (the client reads
+   * that bind as null). */
+  onUnlessNull(elem: JsonObject, key: string, ctx: Ctx): boolean {
+    if (elem[key] === undefined || elem[key] === null) return true;
+    return this.flag(elem, key, ctx, false);
+  }
+
   tex(name: string | null | undefined): RGBAImage | null {
     if (!name) return null;
     return this.images.peek(name) ?? null;
@@ -293,11 +299,13 @@ export class Renderer {
 
   paste(im: RGBAImage | null, x: number, y: number, alpha = 1, clip: ClipBox | null = null): void {
     if (!im || this.dry) return;
-    let px = pyRound(x);
-    let py = pyRound(y);
+    // The GPU fills the pixels whose centres a quad covers, so a picture that lands on a half pixel goes up and left.
+    let px = Math.ceil(x - 0.5);
+    let py = Math.ceil(y - 0.5);
     let img = withAlpha(im, alpha);
     if (clip) {
-      const [cx0, cy0, cx1, cy1] = clip.map(pyRound) as ClipBox;
+      // The clip box rounds as placement does, or a window on a half pixel loses its outer row and column.
+      const [cx0, cy0, cx1, cy1] = clip.map((v) => Math.ceil(v - 0.5)) as ClipBox;
       const x0 = Math.max(px, cx0);
       const y0 = Math.max(py, cy0);
       const x1 = Math.min(px + img.width, cx1);
@@ -409,6 +417,14 @@ export class Renderer {
     return [tx, tw];
   }
 
+  /** A problem for a key bound to a bind with no sample value: many saved dumps record none, and the client then reads
+   * null (hidden, disabled, nothing drawn) until the script sets it. */
+  private unsetBind(node: LayoutNode, elem: JsonObject, key: string, ctx: Ctx, r: Rect): void {
+    const v = elem[key];
+    if (!isObject(v) || !("bind" in v) || this.value(elem, key, ctx, null) !== null) return;
+    this.problem(node, "unset bind", `${key}: bind \`${pyStr(v.bind)}\` has no sample value: the client ${key === "visible" ? "hides this" : key === "enabled" ? "disables this" : "draws nothing here"} until the script sets it`, r);
+  }
+
   problem(node: { path: string; elem?: JsonObject }, kind: string, text: string, r: Rect): void {
     this.problems.push({ path: node.path, kind, text, rect: r, elem: node.elem });
   }
@@ -486,17 +502,21 @@ export class Renderer {
     const ww = g("w", 400);
     const wh = g("h", 300);
     // -1 centres, -2 and -3 place at the mouse (the canvas centre here), below 0 clamps to 0 (window.ts).
-    const wx = pyRound(windowPosition(g("x", -1), ww, canvasW));
-    const wy = pyRound(windowPosition(g("y", -1), wh, canvasH));
+    const wx = windowPosition(g("x", -1), ww, canvasW);
+    const wy = windowPosition(g("y", -1), wh, canvasH);
     const chrome = windowChrome(win, this.binds);
     const hh = chrome.header ? CHROME.header_h : 0;
     const ctx: Ctx = { ox: 0, oy: 0, clip: [wx, wy, wx + ww, wy + wh], row: null, disabled: false };
     // A window font (NuiWindow's jFont) sets the title's font too.
     const winFont = this.skin.font(this.value(win, "font", ctx0, null));
     if (chrome.header) {
-      this.frame("window.header.normal", "nui_windowh", [wx, wy, ww, hh], ctx);
+      // The client draws the title bar a pixel taller than the body's offset, so the body's frame covers its last row
+      // (seen in game).
+      // A window the client has just opened has focus, so Nuklear draws its bar with window.header.active and its
+      // title in label_active (docs/CLIENT-BEHAVIOUR.md#window-frame).
+      this.frame("window.header.active", "nui_windowh", [wx, wy, ww, hh + 1], ctx);
       const font = winFont;
-      const label = color(this.skin.get("window.header.label_normal", "#C8C8C8FF"));
+      const label = color(this.skin.get("window.header.label_active", "#FFFFFFFF"));
       const bsize = CHROME.button;
       let right = wx + ww - CHROME.button_right;
       const buttons = (chrome.close ? 1 : 0) + (chrome.collapse ? 1 : 0);
@@ -505,9 +525,11 @@ export class Renderer {
         // The title is a bound string drawn by Nuklear too: the same code page problem as a label's.
         const title = isObject(chrome.title) && "strref" in chrome.title ? `<strref ${pyStr(chrome.title.strref)}>` : pyStr(chrome.title);
         const shown = this.shown({ path: "/title" }, title, [wx, wy, ww, hh]);
-        this.line(font, shown, wx + CHROME.title_x, wy + (hh - font.line) / 2, label, tclip);
+        // The client's title starts 1 px further in than the frame's 7 (docs/CLIENT-BEHAVIOUR.md#window-frame).
+        this.line(font, shown, wx + CHROME.title_x + 1, wy + (hh - font.line) / 2, label, tclip);
       }
-      const by = wy + (hh - bsize) / 2;
+      // Centred in the title bar the client draws, a pixel taller than hh (above).
+      const by = wy + (hh + 1 - bsize) / 2;
       if (chrome.close) {
         const name = this.skinStr("window.header.close_button.normal", "nui_close");
         const t = this.tex(name);
@@ -589,8 +611,10 @@ export class Renderer {
     const [x, y, w, h] = n.rect;
     const r: Rect = [ctx.ox + x, ctx.oy + y, w, h];
     const elem = n.elem;
-    const visible = this.flag(elem, "visible", ctx, true);
-    const enabled = this.flag(elem, "enabled", ctx, true);
+    // A bind the script never set reads as null: the client hides the element (docs/CLIENT-BEHAVIOUR.md).
+    const visible = this.onUnlessNull(elem, "visible", ctx);
+    const enabled = this.onUnlessNull(elem, "enabled", ctx);
+    for (const key of ["visible", "enabled"]) this.unsetBind(n, elem, key, ctx, r);
     const sub: Ctx = { ...ctx, disabled: ctx.disabled || !enabled };
     const t = n.type;
     this.outlines.push({ rect: r, path: n.path, isSpan: SPANS.has(t), visible, type: t, elem, row: ctx.row });
@@ -730,7 +754,9 @@ export class Renderer {
     const e = n.elem;
     this.buttonBg(r, ctx, false, "button", this.flag(e, "encouraged", ctx, false));
     const [x, y, w, h] = r;
-    this.image(n, [x + 4, y + 4, w - 8, h - 8], ctx, this.text(e, "label", ctx), 0, 0, 0, null);
+    // Nuklear's button content inset: padding 2 + border 0 + rounding 4 (docs/CLIENT-BEHAVIOUR.md; a 40 px button shows a
+    // 28 px image).
+    this.image(n, [x + 6, y + 6, w - 12, h - 12], ctx, this.text(e, "label", ctx), 0, 0, 0, null);
   }
 
   wImage(n: LayoutNode, r: Rect, ctx: Ctx): void {
@@ -749,14 +775,25 @@ export class Renderer {
 
   /** An image in rect r, as NUI_ASPECT_* places it. */
   image(n: LayoutNode, r: Rect, ctx: Ctx, resref: string, aspect: unknown, halign: unknown, valign: unknown, region: unknown): void {
-    if (!resref) return;
-    const found = this.images.peek(resref);
+    // The client draws an empty name as its not-found picture, and a name no layer has as its error picture, each
+    // placed like the image it stands in for (docs/CLIENT-BEHAVIOUR.md).
+    let found = this.images.peek(resref || "gui_notfound");
     const [x, y, w, h] = r;
     if (found === undefined) return; // not loaded yet: the caller draws again once it is
-    if (found === null) {
+    if (found === null && resref) {
       const info = this.images.describe(resref);
       const why = info?.error ? `: ${info.error}` : "";
       this.problem(n, "missing image", `no texture "${resref}" in the game or the haks${why}`, r);
+      found = this.images.peek("gui_error");
+      if (found === undefined) return;
+      // At its own size, centred, each side shrunk only to fit the box, the picture's shape not kept: a 132 px box
+      // shows it 36 x 36, a 40 x 30 one 36 x 30 (docs/CLIENT-BEHAVIOUR.md). 6 is no NUI_ASPECT_*: this placement alone.
+      region = null;
+      aspect = 6;
+      halign = 0;
+      valign = 0;
+    }
+    if (found === null) {
       // Clipped like the image would be: a row of a list draws nothing past the list.
       this.box(x, y, w, h, null, [200, 0, 200, 255], ctx.clip);
       return;
@@ -790,6 +827,9 @@ export class Renderer {
     } else if (asp === 3 || asp === 4) {
       dw = iw;
       dh = ih;
+    } else if (asp === 6) {
+      dw = Math.min(iw, w);
+      dh = Math.min(ih, h);
     } else {
       dw = w;
       dh = h;
@@ -799,7 +839,8 @@ export class Renderer {
     const dx = x + (ha === 1 ? 0 : ha === 2 ? w - dw : (w - dw) / 2);
     const dy = y + (va === 1 ? 0 : va === 2 ? h - dh : (h - dh) / 2);
     if (this.dry) return;
-    const scaled = resize(im, Math.max(1, pyRound(dw)), Math.max(1, pyRound(dh)), "bilinear");
+    // The client's GPU samples a NUI image bilinearly with no mipmaps, so a shrunk image is not smoothed (docs/CLIENT-BEHAVIOUR.md).
+    const scaled = resize(im, Math.max(1, pyRound(dw)), Math.max(1, pyRound(dh)), "gpu");
     this.paste(scaled, dx, dy, this.alpha(ctx), intersect(ctx.clip, [x, y, x + w, y + h]));
   }
 
@@ -825,16 +866,19 @@ export class Renderer {
     const font = this.fontOf(e, ctx);
     const val = this.text(e, "value", ctx);
     const multiline = truthy(e.multiline);
+    // Nuklear's edit.padding_x plus the edit's border: 10 + 1 in the stock skin, 11 px in (docs/CLIENT-BEHAVIOUR.md#text).
+    const padX = this.skin.numOf("edit.padding_x", 10) + this.skin.numOf("edit.border", 1);
     if (!val) {
       const ph = this.text(e, "label", ctx);
-      this.textIn(n, ctx, ph, [x, y, w, h], font, PLACEHOLDER, "left", multiline ? "top" : "middle", this.alpha(ctx), EDIT_PAD_X);
+      this.textIn(n, ctx, ph, [x, y, w, h], font, PLACEHOLDER, "left", multiline ? "top" : "middle", this.alpha(ctx), padX);
       return;
     }
     const fill = color(this.skin.get("edit.text_normal", "#FFFFFFFF"));
     if (multiline) {
-      this.wrapped(n, [x + EDIT_PAD_X, y + 4, w - 2 * EDIT_PAD_X, h - 8], ctx, val, font, fill, false);
+      // The first line starts 2 px below the box's top (docs/CLIENT-BEHAVIOUR.md).
+      this.wrapped(n, [x + padX, y + 2, w - 2 * padX, h - 4], ctx, val, font, fill, false);
     } else {
-      this.textIn(n, ctx, val, [x, y, w, h], font, fill, "left", "middle", this.alpha(ctx), EDIT_PAD_X);
+      this.textIn(n, ctx, val, [x, y, w, h], font, fill, "left", "middle", this.alpha(ctx), padX);
     }
   }
 
@@ -1109,7 +1153,9 @@ export class Renderer {
       solved = this.solve([child], inner[2] - SCROLLBAR, inner[3], n.path, r);
       if (!solved) return;
       [right, bottom] = solved.extent();
-      this.scrollbar([x + w - insetX - SCROLLBAR, y + insetY, SCROLLBAR, h - 2 * insetY], ctx, inner[3] / Math.max(bottom, 1));
+      // A scrollbar the window forces keeps its room, but the client draws none while the content fits
+      // (docs/CLIENT-BEHAVIOUR.md#layout).
+      if (bottom > inner[3] + 0.5) this.scrollbar([x + w - insetX - SCROLLBAR, y + insetY, SCROLLBAR, h - 2 * insetY], ctx, inner[3] / Math.max(bottom, 1));
     }
     const clip = intersect(ctx.clip, [inner[0], inner[1], inner[0] + inner[2] - (scrollY ? SCROLLBAR : 0), inner[1] + inner[3]]);
     const sub: Ctx = { ox: inner[0], oy: inner[1], clip, row: ctx.row, disabled: ctx.disabled, item: ctx.item, padY: GROUP_PADDING_Y };
@@ -1137,7 +1183,9 @@ export class Renderer {
     const showBar = scrollbars === 2 || scrollbars === 3 || (scrollbars === 4 && overflow);
     // The rows take the room the scrollbar leaves.
     const rowW = inner[2] - (showBar ? SCROLLBAR : 0);
-    if (showBar) {
+    // A scrollbar the window forces keeps its room, but the client draws none while the rows fit
+    // (docs/CLIENT-BEHAVIOUR.md#layout).
+    if (showBar && overflow) {
       this.scrollbar([x + w - LIST_INSET_X - SCROLLBAR, y + LIST_INSET_Y, SCROLLBAR, h - 2 * LIST_INSET_Y], ctx, inner[3] / Math.max(need, 1));
     }
     const clipR = inner[0] + inner[2] - (showBar ? SCROLLBAR : 0);
@@ -1266,12 +1314,22 @@ export class Renderer {
 
   private drawItem(n: LayoutNode, r: Rect, ctx: Ctx, dctx: Ctx, clip: ClipBox, it: JsonObject): void {
     const [x, y, w, h] = r;
-    if (!this.flag(it, "enabled", ctx, true)) return;
+    // A bind the script never set reads as null, and the client skips the item (docs/CLIENT-BEHAVIOUR.md).
+    if (!this.onUnlessNull(it, "enabled", ctx)) return;
     const render = this.value(it, "render", ctx, 0);
     if (!(render === 0 || render === 1 || render === null || render === undefined)) return; // only on hover or a click
     const t = it.type;
     if (this.dry && t !== 4 && t !== 5) return; // images and text are checked in rows scrolled out of sight too
-    const c = color(this.value(it, "color", ctx, null) ?? {}, [255, 255, 255, 255]);
+    const cv = this.value(it, "color", ctx, null);
+    // A colour bound to a bind the script never set reads as null, and the client draws nothing (docs/CLIENT-BEHAVIOUR.md).
+    if (cv === null && isObject(it.color) && "bind" in it.color) {
+      this.unsetBind(n, it, "color", ctx, r);
+      return;
+    }
+    const c0 = color(cv ?? {}, [255, 255, 255, 255]);
+    // A disabled element's draw list is drawn at half brightness, still opaque: 92,86,71 shows as 46,43,35
+    // (docs/CLIENT-BEHAVIOUR.md#draw-lists).
+    const c: RGBA = ctx.disabled ? [Math.floor(c0[0] / 2), Math.floor(c0[1] / 2), Math.floor(c0[2] / 2), c0[3]] : c0;
     const fill = this.flag(it, "fill", ctx, false);
     const thick = pyFloat(this.value(it, "line_thickness", ctx, 1) || 1) || 1;
     const rectOf = () => {
@@ -1302,7 +1360,11 @@ export class Renderer {
     } else if (t === 5) {
       // image
       const rc = rectOf();
-      const rr: Rect = [x + (pyFloat(rc.x ?? 0) || 0), y + (pyFloat(rc.y ?? 0) || 0), pyFloat(rc.w ?? w), pyFloat(rc.h ?? h)];
+      // Whole pixels, as the client takes a draw-list image's rect (docs/CLIENT-BEHAVIOUR.md; a portrait at y 3.875 starts on
+      // row 3), like a rect's or a text's.
+      const ix = x + (pyFloat(rc.x ?? 0) || 0);
+      const iy = y + (pyFloat(rc.y ?? 0) || 0);
+      const rr: Rect = [Math.trunc(ix), Math.trunc(iy), Math.trunc(ix + pyFloat(rc.w ?? w)) - Math.trunc(ix), Math.trunc(iy + pyFloat(rc.h ?? h)) - Math.trunc(iy)];
       this.image(
         n,
         rr,
@@ -1322,7 +1384,22 @@ export class Renderer {
       const rr = [rx, ry, rx + (pyFloat(rc.w ?? 0) || 0) - 1, ry + (pyFloat(rc.h ?? 0) || 0) - 1].map(Math.trunc) as ClipBox;
       if (rr[2] < rr[0] || rr[3] < rr[1]) return;
       const tw = Math.max(1, pyRound(thick));
-      this.pilLayer(clip, c, [rr[0], rr[1], rr[2], rr[3]], (px, py) => fill || px < rr[0] + tw || px > rr[2] - tw || py < rr[1] + tw || py > rr[3] - tw);
+      // The client strokes a 1 px outline as Nuklear's anti-aliased line centred on the rect's edge: half of it falls
+      // outside the box and is clipped, so the edge pixels show the colour at half strength (seen in game).
+      // Its outer half lands on the pixels just outside the box, which show it too unless the clip cuts them: a
+      // button's outline inset by 1 shows two half-strength pixels per edge (docs/CLIENT-BEHAVIOUR.md#draw-lists).
+      if (!fill && tw === 1) {
+        const edge: RGBA = [c[0], c[1], c[2], Math.round(c[3] / 2)];
+        const ob: ClipBox = [rr[0] - 1, rr[1] - 1, rr[2] + 1, rr[3] + 1];
+        // ...but never past the widget's own rect (a row's outline at its full size shows one pixel per edge).
+        this.pilLayer(intersect(clip, [x, y, x + w, y + h]), edge, ob, (px, py) => px < ob[0] + 2 || px > ob[2] - 2 || py < ob[1] + 2 || py > ob[3] - 2);
+      } else if (!fill) {
+        // A thicker outline is centred on the rect's edge too: a 2 px one covers the pixel on each side of it (docs/CLIENT-BEHAVIOUR.md), again never past the widget's own rect.
+        const o = Math.floor(tw / 2);
+        const i = tw - o;
+        const ob: ClipBox = [rr[0] - o, rr[1] - o, rr[2] + o, rr[3] + o];
+        this.pilLayer(intersect(clip, [x, y, x + w, y + h]), c, ob, (px, py) => px < rr[0] + i || px > rr[2] - i || py < rr[1] + i || py > rr[3] - i);
+      } else this.pilLayer(clip, c, [rr[0], rr[1], rr[2], rr[3]], () => true);
     } else if (t === 2) {
       // circle
       const rc = rectOf();

@@ -101,16 +101,16 @@ export function nineSlice(tex: RGBAImage, w: number, h: number, margins: Margins
   mt = Math.min(mt, Math.trunc(th / 2), Math.trunc(h / 2));
   mb = Math.min(mb, Math.trunc(th / 2), Math.trunc(h / 2));
   const out = newImage(w, h);
-  const xsSrc = [0, ml, tw - mr, tw];
-  const ysSrc = [0, mt, th - mb, th];
+  // A middle larger than its rect is not shrunk: the client draws it at its own size, cut at the rect's end
+  // (docs/CLIENT-BEHAVIOUR.md#images: a 268 px window shows the first 262 px of nui_windowh's 506 px middle, then its right edge).
+  const xSpans = [[0, ml], [ml, Math.min(tw - mr, w - mr)], [tw - mr, tw]] as const;
+  const ySpans = [[0, mt], [mt, Math.min(th - mb, h - mb)], [th - mb, th]] as const;
   const xsDst = [0, ml, w - mr, w];
   const ysDst = [0, mt, h - mb, h];
   for (let r = 0; r < 3; r++) {
     for (let c = 0; c < 3; c++) {
-      const sx0 = xsSrc[c]!;
-      const sx1 = xsSrc[c + 1]!;
-      const sy0 = ysSrc[r]!;
-      const sy1 = ysSrc[r + 1]!;
+      const [sx0, sx1] = xSpans[c]!;
+      const [sy0, sy1] = ySpans[r]!;
       const dx0 = xsDst[c]!;
       const dx1 = xsDst[c + 1]!;
       const dy0 = ysDst[r]!;
