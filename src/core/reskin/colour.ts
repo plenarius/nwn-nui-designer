@@ -248,9 +248,25 @@ export function frameColour(p: ReskinPalette, name: string): ColourMap {
   };
 }
 
+/** Translucent window fills: one flat panel colour each, black to ink and the stock grey to the button face. */
+export const FILLS: ReadonlySet<string> = new Set(["gui_transprnt", "gui_transprnt2", "gui_pregame_bkg"]);
+
 function frameBase(p: ReskinPalette, name: string, R: Ramps): ColourMap {
+  const l = ladder(p);
+  const fill: Stop[] = [
+    [0, p.ink],
+    [99, l.button],
+  ];
+  // the close X: white X to the accent, its grey (other state) X to the rule, so it stays clear of ink
+  const mark: Stop[] = [
+    [0, p.ink],
+    [99, l.rule],
+    [255, p.accent],
+  ];
   return (r, g, b, a) => {
     const [L, sat, h] = lsh(r, g, b);
+    if (FILLS.has(name)) return ramp(fill, L);
+    if (name === "gui_ig_xbutton") return ramp(mark, L);
     if (name === "gui_pre_chkbox" || name === "gui_gring01") {
       // a white tick or cell on alpha: ink to mark (or glow)
       const hi = name === "gui_pre_chkbox" ? p.mark : p.glow;

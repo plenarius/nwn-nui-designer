@@ -270,9 +270,9 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
           const dxtLost = validation.edgesAfterDxt?.strongLost ?? [];
           if (dxtLost.length) notes.push(`DXT blocks flatten ${dxtLost.length} strong edge(s) the recolour keeps (${dxtLost.slice(0, 2).join("; ")}): the stock blocks hold 4 colours a block`);
         } else {
-          const r = retoneTga(stock, map);
+          const r = retoneTga(stock, map, undefined, raise ? curve : null);
           bytes = r.bytes;
-          validation = validateTexture(stock, bytes, ext, { mapped: mapPicture(decodeTga(stock), map, null) });
+          validation = validateTexture(stock, bytes, ext, { ...(raise ? { alpha: curve, alphaTolerance: 16 } : {}), mapped: mapPicture(decodeTga(stock), map, raise ? curve : null) });
           if (outFormat !== "tga") {
             tgaBytes = bytes.length;
             const c = compressToDds(decodeTga(bytes));

@@ -124,7 +124,7 @@ export function tgaInfo(raw: Uint8Array): TgaInfo | null {
  * Retones an uncompressed 24- or 32-bit TGA: same bytes, pixels mapped (alpha kept). protect: a rectangle (left,
  * top, right, bottom in the picture as shown, exclusive) copied unchanged.
  */
-export function retoneTga(raw: Uint8Array, map: ColourMap, protect?: [number, number, number, number]): RetoneResult {
+export function retoneTga(raw: Uint8Array, map: ColourMap, protect?: [number, number, number, number], alpha?: ((a: number) => number) | null): RetoneResult {
   const t = tgaInfo(raw);
   if (!t) throw new Error("not an uncompressed 24- or 32-bit TGA: not changed");
   const out = raw.slice();
@@ -139,6 +139,7 @@ export function retoneTga(raw: Uint8Array, map: ColourMap, protect?: [number, nu
       out[o] = Math.min(255, Math.max(0, Math.round(c[2])));
       out[o + 1] = Math.min(255, Math.max(0, Math.round(c[1])));
       out[o + 2] = Math.min(255, Math.max(0, Math.round(c[0])));
+      if (alpha && bp === 4) out[o + 3] = alpha(a);
     }
   }
   return { bytes: out, worstColour: 0, notes: [] };
