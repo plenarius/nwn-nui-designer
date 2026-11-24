@@ -2,9 +2,9 @@
  * The skin tools from the command line (they replace tools/open-skin/gen_skin.py, build_hak.py, check_skin.py and
  * widget_sheet.py):
  *
- *   pnpm skin ship [--theme ID] [--check]   rebuild the built-in skins, assets/skin/<theme>/ (all five without
+ *   pnpm skin ship [--theme ID] [--check]   rebuild the built-in skins, assets/skin/<theme>/ (all six without
  *                                        --theme; --check: compare, write nothing). IDs: ink, bronze, brass,
- *                                        verdigris, oxblood (src/core/skin/themes.ts)
+ *                                        verdigris, oxblood, winter (src/core/skin/themes.ts)
  *   pnpm skin preset d-iron -o DIR       a preset's files into a folder (not shipped)
  *   pnpm skin hak [--theme ID] [-o FILE] [--erf]   a built-in skin packed as a hak a module can use
  *                                        (default: Ink and brass, nuid_ink_skin.hak; each theme's hak name is in themes.ts)

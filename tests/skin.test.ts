@@ -107,13 +107,14 @@ describe("the generator (TypeScript port of draw.py and candidates.py)", () => {
 });
 
 describe("the built-in themes (themes.ts)", () => {
-  it("are the five skins, Ink and brass first and the default, each with its own folder, fonts and hak", () => {
+  it("are the six skins, Ink and brass first and the default, each with its own folder, fonts and hak", () => {
     expect(THEMES.map((t) => [t.id, t.title, t.hak])).toEqual([
       ["ink", "Ink and brass", "nuid_ink_skin"],
       ["bronze", "Bronze", "nuid_bronze_skin"],
       ["brass", "Brass and soot", "nuid_brass_skin"],
       ["verdigris", "Verdigris and paper", "nuid_verdi_skin"],
       ["oxblood", "Oxblood and rivets", "nuid_oxbld_skin"],
+      ["winter", "Winter steel", "nuid_wintr_skin"],
     ]);
     expect(DEFAULT_THEME).toBe("ink");
     expect(themeOf("nonsense").id).toBe("ink");
@@ -141,6 +142,7 @@ describe("the built-in themes (themes.ts)", () => {
       brass: "b89971347e0beb568e5c550f4533d58353a96189435cb3afd7fab907bd21268c",
       verdigris: "9c8fefca09e15d2847824b1608d55450b85a42fa503da508e747494f512fc9a5",
       oxblood: "3e82f1b4f5ede22703285442e439129d1f140e79d61bba759c72d7151ee8ac8b",
+      winter: "8de7a83db0900d63c62b002a1e50ecfce3ff045ad8b2a7033b4684937c186e6e",
     };
     for (const t of THEMES) {
       const a = hak(t.id);

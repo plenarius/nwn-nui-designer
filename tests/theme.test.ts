@@ -82,7 +82,7 @@ describe("light skin", () => {
     const by = Object.fromEntries(THEMES.map((t) => [t.id, lightCheck(t.style)]));
     expect(by.verdigris!.light).toBe(true);
     expect(by.verdigris!.luma).toBeGreaterThan(200);
-    for (const id of ["bronze", "ink", "brass", "oxblood"]) expect(by[id]!.light, id).toBe(false);
+    for (const id of ["bronze", "ink", "brass", "oxblood", "winter"]) expect(by[id]!.light, id).toBe(false);
   });
 
   // Its own timeout: two whole themes exported.

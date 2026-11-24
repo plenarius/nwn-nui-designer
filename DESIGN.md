@@ -348,9 +348,9 @@ whether the window editor draws with it, so the two never seem to disagree. Ever
   byte on every test run, two presets' sha256 from the Python run are in the test, and `build_hak.py` runs from git
   (`e38d1ca`) to compare the hak when Python is there. Regenerating every texture takes about 110 ms, so the Generator
   panel redraws live.
-- **Five built-in skins** (`themes.ts`): Ink and brass (default), Bronze, and the steampunk Brass and soot,
-  Verdigris and paper, and Oxblood and rivets. Each folder in `assets/skin/` is a complete skin and a hak on its own
-  (so JetBrains Mono is committed five times); the haks are built on demand, not committed. What they are and why:
+- **Six built-in skins** (`themes.ts`): Ink and brass (default), Bronze, the steampunk Brass and soot,
+  Verdigris and paper, and Oxblood and rivets, and Winter steel. Each folder in `assets/skin/` is a complete skin and a
+  hak on its own (so JetBrains Mono is committed six times); the haks are built on demand, not committed. What they are and why:
   [docs/OPEN-SKIN.md](docs/OPEN-SKIN.md).
 - **Export: only what the user brought** (`planExport`): the `.tml`; the user's own files it names (for a texture, the
   format the client would pick); own textures and fonts it does not name (a texture under a game name replaces the

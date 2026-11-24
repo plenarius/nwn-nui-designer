@@ -20,7 +20,7 @@
  *                         and a summary, also written to $GITHUB_STEP_SUMMARY when set)
  *   --canvas WxH          the screen the window is laid out on (default 1440x900, as the editor)
  *   --text-model MODEL    nuklear (default, as the client) or nui-preview
- *   --game DIR, --hak FILE, --hak-dir DIR --module-ifo FILE, --override DIR, --fallback, --theme ink|bronze|brass|verdigris|oxblood:
+ *   --game DIR, --hak FILE, --hak-dir DIR --module-ifo FILE, --override DIR, --fallback, --theme ink|bronze|brass|verdigris|oxblood|winter:
  *                         the resources, as for pnpm render (default: $NWN_ROOT, NWN_HAK_DIR and NWN_MODULE_IFO, else
  *                         nui-designer.ini). Without a game, the built-in skin: the checks that measure text with the
  *                         game's fonts or look for the game's textures are then approximate, and it says which.

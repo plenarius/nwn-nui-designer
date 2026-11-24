@@ -2,8 +2,8 @@
  * The procedural skins: a Style of about 30 numbers, the textures drawn from it and every nui_skin.tml key set from
  * it. A port of tools/open-skin/candidates.py (removed in phase 3; in git at e38d1ca). "b-clean" (Ink and brass,
  * Brawler) is the default built-in skin and "a-bronze" (Bronze, Philosopher Bold) the second one (themes.ts,
- * assets/skin/ink and assets/skin/bronze, CC0); "d-iron" is a preset only. The textures come out byte for byte as the
- * Python generator drew them (tests/skin.test.ts).
+ * assets/skin/ink and assets/skin/bronze, CC0), with the steampunk three and "w-winter" (Winter steel); "d-iron" is a
+ * preset only. The textures come out byte for byte as the Python generator drew them (tests/skin.test.ts).
  *
  * Every pixel comes from the numbers here: no input image. The palettes were picked by hand for each look.
  */
@@ -352,7 +352,41 @@ export const OXBLOOD: Style = style({
   ],
 });
 
-export const PRESETS: Style[] = [BRONZE, CLEAN, IRON, BRASS, VERDIGRIS, OXBLOOD];
+export const WINTER: Style = style({
+  key: "w-winter",
+  title: "W: Winter steel",
+  summary:
+    "Cold and flat: deep navy panels, one thin silver rule, ice-blue for pressed and selected, a single frost-white line on hover. No noise. Philosopher Bold, Cinzel Decorative for headings. Procedural.",
+  font: "philosopher-bold",
+  display_font: { font: "cinzeldecorative-bold", size: 22 },
+  text: "#E8EEF6FF",
+  title_label: "#C4D0E0FF",
+  title_label_active: "#FFFFFFFF",
+  accent: "#8CA0BCFF",
+  fixed_background: "#101828FF",
+  contextual: ["#101828FF", "#202C40FF", "#38648CFF"],
+  window_body: { top: [16, 24, 40] },
+  title_body: { top: [32, 44, 64], bottom: [24, 34, 52] },
+  button_body: { top: [32, 44, 64], bottom: [24, 34, 50] },
+  active_body: { top: [56, 100, 144], bottom: [44, 84, 124] },
+  well: [8, 12, 24],
+  rings: [[4, 6, 12], [140, 160, 188], null],
+  bevel: 0,
+  glow: [236, 248, 255],
+  glow_start: 2,
+  glow_width: 1,
+  glow_strength: 1,
+  mark: [228, 238, 250],
+  mark_dark: [8, 12, 20],
+  tile: null,
+  tick: "check",
+  progress: [
+    [200, 228, 255],
+    [56, 100, 150],
+  ],
+});
+
+export const PRESETS: Style[] = [BRONZE, CLEAN, IRON, BRASS, VERDIGRIS, OXBLOOD, WINTER];
 
 /** A deep copy (for editing). */
 export const cloneStyle = (s: Style): Style => JSON.parse(JSON.stringify(s)) as Style;

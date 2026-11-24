@@ -8,7 +8,7 @@
  * The windows: fixtures/problems.jui, and from --dumps (default local/dumps/, made by nwn-module's
  * `tests/run.sh --nui`) Layonara's furniture window, `furnplace@acts-arrange.json`, used with permission: text and
  * buttons, no images. Dumps are never committed; without it fixtures/layout.jui stands in. --help-window adds
- * skins-help.png, the five skins on Layonara's help window (`help-crafting.json`), for review: it is not in the README. A window that shows an
+ * skins-help.png, the six skins on Layonara's help window (`help-crafting.json`), for review: it is not in the README. A window that shows an
  * image is refused, as its art could be the game's. The `pnpm check` shot runs the real command and draws its output
  * as a terminal. The PNGs go to docs/screenshots/, through `oxipng` when it is on the PATH. --only writes just the named
  * pictures (`--only arrange`), leaving the others as they are (they may have been made from a dump this machine lacks).
@@ -378,7 +378,7 @@ try {
   await page.keyboard.press("Escape");
   await settle(300);
 
-  // The five built-in skins on the same window, then on the help window.
+  // The six built-in skins on the same window, then on the help window.
   await grid("skins-compare", await everySkin(), 3);
   if (HELP) {
     await open(HELP);

@@ -80,7 +80,7 @@ interface Settings {
   skinView: SkinView;
   /** Draw the window editor's canvas with the skin being edited. */
   skinLive: boolean;
-  /** The built-in skin, a themes.ts id: "ink" (Ink and brass, the default), "bronze", "brass", "verdigris" or "oxblood". */
+  /** The built-in skin, a themes.ts id: "ink" (Ink and brass, the default), "bronze", "brass", "verdigris", "oxblood" or "winter". */
   theme: string;
   /** The grid step sizes snap to on the canvas (2, 4 or 8). */
   grid: number;

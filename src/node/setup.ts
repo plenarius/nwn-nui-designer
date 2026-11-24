@@ -23,7 +23,7 @@ export interface NodeResourceOptions {
   textModel?: TextModel;
   /** Ignore the game's skin and fonts: the built-in skin. */
   fallback?: boolean;
-  /** Which built-in skin (assets/skin/<theme>, a themes.ts id): "ink" (the default), "bronze", "brass", "verdigris", "oxblood". */
+  /** Which built-in skin (assets/skin/<theme>, a themes.ts id): "ink" (the default), "bronze", "brass", "verdigris", "oxblood", "winter". */
   theme?: string;
 }
 
