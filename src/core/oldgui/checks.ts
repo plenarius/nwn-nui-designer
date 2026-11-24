@@ -196,8 +196,8 @@ export interface FlatOptions {
   ink?: readonly number[];
 }
 
-/** The light colours a theme fills faces with on purpose, from its palette: the pressed and selected fills, the
- * accent and the darker brass a thumb, knob or progress fill uses, the hover glow, the marks and a disabled mark's
+/** The light colours a theme fills faces with on purpose, from its palette: the pressed and selected fills (both
+ * ends and the middle the redraw paints, draw/style.ts), the accent and the darker brass a thumb, knob or progress fill uses, the hover glow, the marks and a disabled mark's
  * grey. */
 export function lightFills(p: { ink: readonly number[]; accent: readonly number[]; activeLo: readonly number[]; active: readonly number[]; glow: readonly number[]; glowHi: readonly number[]; mark: readonly number[] }): number[][] {
   const mix = (a: readonly number[], b: readonly number[], t: number) => [0, 1, 2].map((k) => Math.round(a[k]! + (b[k]! - a[k]!) * t));
@@ -205,7 +205,7 @@ export function lightFills(p: { ink: readonly number[]; accent: readonly number[
     const l = Math.round(lum(c));
     return [l, l, l];
   };
-  return [p.activeLo, p.active, p.accent, mix(p.accent, p.ink, 0.15), p.glow, p.glowHi, p.mark, grey(mix(p.mark, p.ink, 0.5))].map((c) => [...c]);
+  return [p.activeLo, p.active, mix(p.activeLo, p.active, 0.5), p.accent, mix(p.accent, p.ink, 0.15), p.glow, p.glowHi, p.mark, grey(mix(p.mark, p.ink, 0.5))].map((c) => [...c]);
 }
 
 const lum = (c: readonly number[]) => 0.299 * c[0]! + 0.587 * c[1]! + 0.114 * c[2]!;

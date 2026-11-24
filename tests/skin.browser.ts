@@ -126,14 +126,14 @@ try {
   await settle(600);
   await page.screenshot({ path: join(out, "07-theme-switch-bronze.png") });
   check(
-    (await builtin.locator("optgroup[label=Built-in] option").allTextContents()).join("|") === "Ink and brass|Bronze|Brass and soot|Verdigris and paper|Oxblood and rivets",
-    "the switch offers the five built-in skins, Ink and brass first",
+    (await builtin.locator("optgroup[label=Built-in] option").allTextContents()).join("|") === "Ink and brass|Bronze|Brass and soot|Verdigris and paper|Oxblood and rivets|Winter steel",
+    "the switch offers the six built-in skins, Ink and brass first",
   );
   await builtin.selectOption("ink");
   check(await until(async () => (await canvasHash()) === inkHash, 15000), "and back to Ink and brass, the same pixels");
   await page.getByRole("group", { name: "Editor" }).getByRole("button", { name: "Skin" }).click();
   await page.waitForSelector(".skin-start");
-  check((await page.locator(".skin-start .card", { hasText: "Built-in:" }).count()) === 5, "the skin editor can start from any of the five built-in skins");
+  check((await page.locator(".skin-start .card", { hasText: "Built-in:" }).count()) === 6, "the skin editor can start from any of the six built-in skins");
   await page.getByRole("group", { name: "Editor" }).getByRole("button", { name: "Window" }).click();
 
   if (mini) {

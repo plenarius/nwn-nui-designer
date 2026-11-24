@@ -16,27 +16,28 @@ and the README's [command line](../README.md#command-line). Their open gaps: [GA
 
 | Question | Decision |
 |---|---|
-| Look | **Five themes**, to give an idea or a starting point. The default is **B "Ink and brass"**; **A "Bronze"** is close to the stock look; the steampunk three are **S1 "Brass and soot"** (`s-brass`), **S2 "Verdigris and paper"** (`s-verdigris`, the one light skin) and **S3 "Oxblood and rivets"** (`s-oxblood`). D "Iron" is a generator preset only (`pnpm skin preset d-iron`). |
-| Text font | **Brawler Regular** for Ink and brass, **Philosopher Bold** for Bronze, **Old Standard TT Bold** for Brass and soot, **Spectral SemiBold** (at 19) for Verdigris and paper, **Zilla Slab SemiBold** (at 18) for Oxblood and rivets. The steampunk three add a `display` font for headings: **Rye**, **Federant**, **Cinzel Decorative Bold**. `(monospace)` is JetBrains Mono 2.304 in all five, byte for byte the game's. All unmodified, SIL OFL 1.1. |
+| Look | **Six themes**, to give an idea or a starting point. The default is **B "Ink and brass"**; **A "Bronze"** is close to the stock look; the steampunk three are **S1 "Brass and soot"** (`s-brass`), **S2 "Verdigris and paper"** (`s-verdigris`, the one light skin) and **S3 "Oxblood and rivets"** (`s-oxblood`); **W "Winter steel"** (`w-winter`) is cold navy and silver, flat like Ink and brass. D "Iron" is a generator preset only (`pnpm skin preset d-iron`). |
+| Text font | **Brawler Regular** for Ink and brass, **Philosopher Bold** for Bronze, **Old Standard TT Bold** for Brass and soot, **Spectral SemiBold** (at 19) for Verdigris and paper, **Zilla Slab SemiBold** (at 18) for Oxblood and rivets, **Philosopher Bold** for Winter steel. The steampunk three and Winter steel add a `display` font for headings: **Rye**, **Federant**, **Cinzel Decorative Bold** (Oxblood and Winter steel). `(monospace)` is JetBrains Mono 2.304 in all six, byte for byte the game's. All unmodified, SIL OFL 1.1. |
 | Licence | **CC0 1.0** for the generated skins (textures, `nui_skin.tml`). The code is MIT. The fonts keep their OFL. |
 | Modified fonts | **None.** |
 | Texture names | **The game's names** (`nui_windowh`, `nui_button_n`, …), so a hak that replaces one still shows over the built-in skin as it would over the game's; plus the skins' own `nuio_*` extras (`nuio_trackh`, and `nuio_title` for Ink and brass's title bar). |
 
-- **`assets/skin/ink/`**, **`bronze/`**, **`brass/`**, **`verdigris/`** and **`oxblood/`** are each a complete skin:
+- **`assets/skin/ink/`**, **`bronze/`**, **`brass/`**, **`verdigris/`**, **`oxblood/`** and **`winter/`** are each a complete skin:
   `nui_skin.tml` (every key the client reads; `pnpm skin check`: 0 errors, 0 warnings); the textures (32-bit TGA,
-  about 0.5 MB: 32 for Bronze, 33 for the others); the text font, `nuio_jbmono.ttf` and (steampunk) the display font,
+  about 0.5 MB: 32 for Bronze, 33 for the others); the text font, `nuio_jbmono.ttf` and (steampunk, Winter steel) the display font,
   each with its `OFL-*.txt`; `LICENSE`; `PROVENANCE.md`. They are generated: `pnpm skin ship` writes them from the
-  presets `b-clean`, `a-bronze`, `s-brass`, `s-verdigris` and `s-oxblood`, and `--check` (also a unit test) confirms
+  presets `b-clean`, `a-bronze`, `s-brass`, `s-verdigris`, `s-oxblood` and `w-winter`, and `--check` (also a unit test) confirms
   the committed files are exactly what the generator makes. `src/core/skin/themes.ts` lists them and `fallback.ts`
   loads them.
 - **As haks**, built on demand (`pnpm skin hak --theme ID`, reproducible with `SOURCE_DATE_EPOCH`; the test pins each
-  one's sha256): `nuid_ink_skin.hak` (default), `nuid_bronze_skin.hak`, `nuid_brass_skin.hak`, `nuid_verdi_skin.hak`
-  and `nuid_oxbld_skin.hak`, 39 to 42 resources, 0.6 to 1 MB, with the licence texts as `.txt` resources
-  (`nuio_skin_lic`, `ofl_<font>`, `nuio_skin_prov`; font resrefs are at most 12 characters so `ofl_<font>` fits in
+  one's sha256): `nuid_ink_skin.hak` (default), `nuid_bronze_skin.hak`, `nuid_brass_skin.hak`, `nuid_verdi_skin.hak`,
+  `nuid_oxbld_skin.hak` and `nuid_wintr_skin.hak`, 39 to 42 resources, 0.6 to 1 MB, with the licence texts as
+  `.txt` resources (`nuio_skin_lic`, `ofl_<font>`, `nuio_skin_prov`; font resrefs are at most 12 characters so `ofl_<font>` fits in
   16). (Before Ink and brass became the default, the single hak was `nuid_open_skin.hak`, Bronze; a module listing
   that name needs the new one.)
-- **Why five**: the steampunk shortlist was meant to pick one third skin; all three shipped instead, as starting
-  points in different directions, since nobody knows which way someone will take their game's look. Verdigris
+- **Why six**: the steampunk shortlist was meant to pick one third skin; all three shipped instead, as starting
+  points in different directions, since nobody knows which way someone will take their game's look. Winter steel
+  came later, a cold blue counterpart to Ink and brass's warm one. Verdigris
   and paper's text font went from 22 to 19 so three-line text laid out for a 17 px line does not clip (Layonara's
   furniture window). A light skin shows windows that hard-code a light text colour (that window's gold title line)
   at low contrast; that is the window's choice, not the skin's.

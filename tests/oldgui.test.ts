@@ -276,6 +276,15 @@ describe("checks", () => {
     expect(fills).toContainEqual([146, 120, 78]);
   });
 
+  it("allow the pressed face the redraw paints, the middle of a wide pressed gradient", () => {
+    const pal = { ...paletteFromStyle(chooseSkin("ink").style), activeLo: [40, 60, 90], active: [120, 170, 220] } as ReturnType<typeof paletteFromStyle>;
+    const press = oldGuiStyle(pal).press;
+    const face = panel(() => press);
+    // far from both ends of the gradient: only the middle allows it
+    expect(checkFlat("t", face, [], [], { allowed: [pal.activeLo, pal.active], ink: pal.ink })[0]!.message).toMatch(/pale face/);
+    expect(checkFlat("t", face, [], [], { allowed: lightFills(pal), ink: pal.ink })).toEqual([]);
+  });
+
   it("fail on the old GUI's fonts replaced only in part", () => {
     const ttf = new Uint8Array([0, 1, 0, 0]);
     expect(checkFonts(new Map())).toEqual([]);

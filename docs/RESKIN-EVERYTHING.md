@@ -45,8 +45,8 @@ game; the licence note in the export (`nuid_skin_lic.txt`) says which files are 
 3. The game folder known to the tools: `NWN_ROOT=/path/to/game`, or `game = ...` in `nui-designer.ini` (see the
    README's "Use your own game"), or `--game DIR` on the command line; in the editor, **Game and haks**.
 4. **A NUI skin with a generator style.** One of:
-   - a built-in skin: `ink`, `bronze`, `brass`, `verdigris` or `oxblood` (the README's skins table);
-   - a generator preset: `a-bronze`, `b-clean`, `d-iron`, `s-brass`, `s-verdigris`, `s-oxblood`;
+   - a built-in skin: `ink`, `bronze`, `brass`, `verdigris`, `oxblood` or `winter` (the README's skins table);
+   - a generator preset: `a-bronze`, `b-clean`, `d-iron`, `s-brass`, `s-verdigris`, `s-oxblood`, `w-winter`;
    - your own skin, made in the skin editor's **Generator** (start from a preset, change its colours), saved as a
      project (`*.nuiskin.json`), or open in the editor. The original GUI's palette is derived from the generator's
      numbers, so a skin made only from uploaded images can't be used as it is: generate it (or regenerate one close to

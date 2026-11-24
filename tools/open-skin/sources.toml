@@ -19,7 +19,7 @@ copyright = "Copyright 2011 The Brawler Project Authors (https://github.com/cyre
 reserved_font_name = ""
 resref = "nuio_brawler"
 
-# The text font of theme A "Bronze".
+# The text font of theme A "Bronze" and of "Winter steel".
 [fonts.philosopher-bold]
 family = "Philosopher"
 style = "Bold"
@@ -111,7 +111,7 @@ copyright = "Copyright 2017, The Mozilla Foundation"
 reserved_font_name = ""
 resref = "nuio_zillasb"
 
-# s-oxblood display: engraved capitals with swash.
+# s-oxblood and w-winter display: engraved capitals with swash.
 [fonts.cinzeldecorative-bold]
 family = "Cinzel Decorative"
 style = "Bold"

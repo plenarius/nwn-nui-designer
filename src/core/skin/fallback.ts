@@ -2,10 +2,11 @@
  * The built-in skins: used when no game folder is loaded (or when asked for), since this project cannot ship
  * Beamdog's skin, textures or fonts. Each is an open skin in assets/skin/<theme>/ (themes.ts; docs/OPEN-SKIN.md):
  * "ink", B "Ink and brass" with Brawler Regular, the default; "bronze", A
- * "Bronze" with Philosopher Bold; and the steampunk three, "brass", "verdigris" and "oxblood". Each has a
- * nui_skin.tml that sets every key the client reads, procedural textures under the game's names (nui_windowh,
+ * "Bronze" with Philosopher Bold; the steampunk three, "brass", "verdigris" and "oxblood"; and "winter", W "Winter
+ * steel". Each has a nui_skin.tml that sets every key the client reads, procedural textures under the game's names (nui_windowh,
  * nui_button_n, ...; a hak that replaces one still takes effect) plus a few nuio_* of its own, and unmodified OFL
- * fonts: its text font "(default)", JetBrains Mono "(monospace)" and, in the steampunk three, a "display" font.
+ * fonts: its text font "(default)", JetBrains Mono "(monospace)" and, in the steampunk three and Winter steel, a
+ * "display" font.
  *
  * The files are built by `pnpm skin ship` (src/core/skin/gen); the textures and nui_skin.tml are CC0, the fonts OFL
  * (each folder's LICENSE). Each platform loads them (src/app/platform.ts, src/node/setup.ts) and hands them here.

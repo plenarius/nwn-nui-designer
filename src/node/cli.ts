@@ -6,7 +6,7 @@
  *
  * Resources: --game (default $NWN_ROOT, else game in nui-designer.ini), --hak FILE (repeat, best first) or
  * --hak-dir DIR with --module-ifo FILE (the module's hak order: a nasher module.ifo.json, a module.ifo or a .mod), --override DIR (loose files after the
- * haks). Without --hak and --hak-dir, the haks and override folders nui-designer.ini names. Without a game (or with --fallback), a built-in skin: --theme ink (Ink and brass, the default), bronze, brass, verdigris or oxblood.
+ * haks). Without --hak and --hak-dir, the haks and override folders nui-designer.ini names. Without a game (or with --fallback), a built-in skin: --theme ink (Ink and brass, the default), bronze, brass, verdigris, oxblood or winter.
  *
  * Prints the problems and exits 1 when there are any; exits 2 on bad options or a file it cannot read.
  */

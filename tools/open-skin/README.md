@@ -1,11 +1,11 @@
 # Open skin tools
 
-The five built-in skins (`assets/skin/ink/`, `bronze/`, `brass/`, `verdigris/`, `oxblood/`; see [docs/OPEN-SKIN.md](../../docs/OPEN-SKIN.md))
+The six built-in skins (`assets/skin/ink/`, `bronze/`, `brass/`, `verdigris/`, `oxblood/`, `winter/`; see [docs/OPEN-SKIN.md](../../docs/OPEN-SKIN.md))
 are built, checked and packed by the designer itself (`src/core/skin/gen/`, `pnpm skin`). This folder keeps the
 skins' pinned font sources and the Python research tools that compared skins and fonts. None of them ships anything.
 
 ```bash
-pnpm skin ship                     # rebuild all five skins in assets/skin/ (textures, nui_skin.tml, PROVENANCE.md, LICENSE)
+pnpm skin ship                     # rebuild all six skins in assets/skin/ (textures, nui_skin.tml, PROVENANCE.md, LICENSE)
 pnpm skin ship --theme bronze      # rebuild one
 pnpm skin ship --check             # are the committed files exactly what the generator makes?
 pnpm skin hak                      # Ink and brass as nuid_ink_skin.hak

@@ -6,7 +6,7 @@
  *                     [--override DIR]... [--no-haks] [--alpha keep|opaque] [--format auto|dds|tga] [--no-sheet]
  *                     [--old-gui-fonts]
  *
- * SKIN: a built-in skin (ink, bronze, brass, verdigris, oxblood), a generator preset (a-bronze, d-iron, ...), or a
+ * SKIN: a built-in skin (ink, bronze, brass, verdigris, oxblood, winter), a generator preset (a-bronze, d-iron, ...), or a
  * skin project (*.nuiskin.json) made in the skin editor's generator.
  *
  * Reads the stock original GUI from your own game (--game, else $NWN_ROOT, else nui-designer.ini's game) and the haks
