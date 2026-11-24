@@ -89,9 +89,9 @@ Still open, in the order they are planned:
   redraw does).
 - **The editor runs the export and its checks, not the previews.** `pnpm old-gui inventory`, `previews` and the frame
   check are command-line only (they read the game executable and draw about 150 screens).
-- **Hak size.** 16 textures stay TGA with `--format auto` (4 MB of the 11.9 MB hak) because DXT would move a flat face
-  by 5 to 11 levels where a 4 x 4 block holds a frame's edge, rule and face. A better block fit (or frames placed on
-  block edges) would let them be DDS.
+- **Hak size.** 16 to 23 textures stay TGA with `--format auto` (about 4 MB of an 11 to 12.5 MB hak) because DXT
+  would move a flat face where a 4 x 4 block holds a frame's edge, rule and face. A better block fit (or frames placed
+  on block edges) would let them be DDS.
 - **Roles of new textures.** The role tables are the stock 8193.37 client's; a newer client's textures show as
   uncategorised until someone looks at them.
 

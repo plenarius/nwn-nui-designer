@@ -5,6 +5,8 @@
 import { errorText } from "../errors.js";
 import { parseHex } from "../reskin/palette.js";
 import { type Finding, type Made, type ThemeFile, checkCategories, checkCoverage, checkFillBars, checkFlat, checkFonts, checkStateIcons, flatSkips, lightFills } from "./checks.js";
+import type { RGBAImage } from "../res/image.js";
+import type { Cell } from "./cells.js";
 import type { CellsFile, InventoryRow } from "./inventory.js";
 import { decodeGuiTexture } from "./texture.js";
 
@@ -45,6 +47,13 @@ export function themeInput(files: Iterable<[string, Uint8Array]>, manifest: { pa
     else if (!textures.has(name) || ext === "dds") textures.set(name, { ext, bytes });
   }
   return { textures, fonts, made, palette: manifest?.palette ?? {} };
+}
+
+/** The flatness faults of one texture as the check sees it (its skips applied); none for a texture it skips whole. */
+export function flatFailures(name: string, img: RGBAImage, cells: readonly Cell[], pal: CheckPalette): string[] {
+  const sk = flatSkips(name);
+  if (sk.whole) return [];
+  return checkFlat(name, img, cells, sk.rects, { allowed: pal.allowed, ink: pal.ink }).filter((f) => f.fail).map((f) => f.message);
 }
 
 export function runOldGuiChecks(rows: readonly InventoryRow[], cells: CellsFile, theme: ThemeInput | null, skinPalette: CheckPalette | null = null): ChecksResult {

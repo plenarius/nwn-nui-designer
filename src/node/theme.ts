@@ -31,7 +31,7 @@
  * otherwise. Not in prefixed/: the client loads fonts once, so they reach every player.
  *
  * --format: what a texture that is a TGA in the game is written as (auto, the default: a DDS unless its error is too
- * high). No prefixed name may start like the game's own names (gui_, ctl_, ...) or be a name the game or a hak
+ * high or it fails the flatness check). No prefixed name may start like the game's own names (gui_, ctl_, ...) or be a name the game or a hak
  * already has.
  *
  * Everything written is derived from your own game files: keep it out of any public repository. DIR may not be inside

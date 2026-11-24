@@ -7,7 +7,9 @@
  * written here (src/node/reskin.ts does that), and no game art is part of this code: it all comes from the user's own
  * install.
  */
-import { type UvEntry } from "../oldgui/cells.js";
+import { type UvEntry, cellsFor } from "../oldgui/cells.js";
+import { lightFills } from "../oldgui/checks.js";
+import { flatFailures } from "../oldgui/runchecks.js";
 import { collectOldGui } from "../oldgui/collect.js";
 import { FACE_WEIGHT, faceWeights, oldGuiStyle, recolourIconGround, redrawOldGui, warm565Image } from "../oldgui/draw/index.js";
 import { decodeGuiTexture } from "../oldgui/texture.js";
@@ -18,7 +20,7 @@ import type { ResMan } from "../res/resman.js";
 import { decodeTga } from "../res/tga.js";
 import { encodeTga24, encodeTga32 } from "../res/tgawrite.js";
 import { biowareLevels, encodeBiowareDds, readBiowareHeader } from "./bc.js";
-import { type CompressionError, type OutputFormat, compressToDds, hasAlpha, keepTgaReason } from "./compress.js";
+import { type Compressed, type CompressionError, type OutputFormat, compressToDds, hasAlpha, keepTgaReason } from "./compress.js";
 import { type AlphaMode, alphaCurve, frameColour, swatchColour } from "./colour.js";
 import { type ReskinPalette, hex } from "./palette.js";
 import { mapPicture, retoneDds, retoneTga, tgaInfo } from "./retone.js";
@@ -114,23 +116,64 @@ function formatOf(bytes: Uint8Array, ext: string): string {
 /** A redrawn picture in the stock file's format: a DDS stays a DDS (DXT5 once it has alpha) with the stock's number of
  * mip levels, dark colours snapped to exact 5:6:5 values; a TGA becomes a DDS unless --format tga or auto finds the
  * DDS too far off (24-bit when opaque, as the stock's). */
-function encodeRedraw(drawn: RGBAImage, stock: Uint8Array, ext: string, fmt: OutputFormat, mipmap = true): { bytes: Uint8Array; ext: string; compression?: ManifestEntry["compression"]; tgaBytes?: number } {
+function encodeRedraw(drawn: RGBAImage, stock: Uint8Array, ext: string, fmt: OutputFormat, mipmap = true, flat?: FlatTest): { bytes: Uint8Array; ext: string; compression?: ManifestEntry["compression"]; tgaBytes?: number; note?: string } {
   const alpha = hasAlpha(drawn);
   const snapped = warm565Image(drawn);
   const weights = faceWeights(snapped);
+  const tga = () => (alpha ? encodeTga32(drawn) : encodeTga24(drawn));
   if (ext === "dds") {
     const bpp = alpha ? 4 : (readBiowareHeader(stock)?.bpp ?? 3);
     // as many mip levels as the stock file has
-    return { bytes: encodeBiowareDds(snapped, bpp === 4 ? 4 : 3, weights, biowareLevels(stock)), ext: "dds" };
+    const fit = flatFit((w) => encodeBiowareDds(snapped, bpp === 4 ? 4 : 3, w, biowareLevels(stock)), weights, fmt === "dds" ? undefined : flat, drawn);
+    if (!fit.broken) return { bytes: fit.bytes, ext: "dds" };
+    const t = tga();
+    return { bytes: t, ext: "tga", tgaBytes: t.length, note: `kept as TGA: ${fit.broken}` };
   }
-  const tga = alpha ? encodeTga32(drawn) : encodeTga24(drawn);
-  if (fmt === "tga") return { bytes: tga, ext: "tga" };
+  const t = tga();
+  if (fmt === "tga") return { bytes: t, ext: "tga" };
   // a texture whose txi says mipmap 0 is drawn from its base level at every size
-  const c = compressToDds(snapped, weights, mipmap ? Infinity : 1);
+  let c!: Compressed;
+  const { broken } = flatFit((w) => (c = compressToDds(snapped, w, mipmap ? Infinity : 1)).bytes, weights, fmt === "auto" ? flat : undefined, drawn);
   const shift = faceShift(snapped, c.decoded, weights);
-  const kept = [keepTgaReason(c.error), shift > FACE_SHIFT ? `a flat face moves ${shift} levels` : null].filter(Boolean).join(", ") || null;
-  if (fmt === "dds" || !kept) return { bytes: c.bytes, ext: "dds", compression: c.error, tgaBytes: tga.length };
-  return { bytes: tga, ext: "tga", compression: { ...c.error, kept }, tgaBytes: tga.length };
+  const kept = [keepTgaReason(c.error), shift > FACE_SHIFT ? `a flat face moves ${shift} levels` : null, broken].filter(Boolean).join(", ") || null;
+  if (fmt === "dds" || !kept) return { bytes: c.bytes, ext: "dds", compression: c.error, tgaBytes: t.length };
+  return { bytes: t, ext: "tga", compression: { ...c.error, kept }, tgaBytes: t.length };
+}
+
+/** Face weights to try in turn when a DXT fit breaks a flat face: the local search lands differently on each. */
+const FLAT_RETRY = [FACE_WEIGHT, FACE_WEIGHT * 4, 1];
+
+/** Why a DDS fails the redraw's own check (decoded mean error above 6), or null. */
+function drift(drawn: RGBAImage, dds: Uint8Array): string | null {
+  const d = meanDiff(decodeGuiTexture(dds, "dds"), drawn);
+  return d > 6 ? `the DDS differs from the drawing by ${d.toFixed(1)} on average` : null;
+}
+
+/** A DDS that passes the flatness check where the drawing does and stays close to it, trying FLAT_RETRY; broken says why none did. */
+function flatFit(encode: (weights: Float64Array) => Uint8Array, weights: Float64Array, flat: FlatTest | undefined, drawn: RGBAImage): { bytes: Uint8Array; broken: string | null } {
+  let first: { bytes: Uint8Array; broken: string | null } | null = null;
+  for (const fw of flat ? FLAT_RETRY : [FACE_WEIGHT]) {
+    const bytes = encode(fw === FACE_WEIGHT ? weights : weights.map((v) => (v === FACE_WEIGHT ? fw : 1)));
+    const broken = flat ? (dxtBreaksFlat(flat, drawn, bytes) ?? drift(drawn, bytes)) : null;
+    if (!broken) return { bytes, broken };
+    first ??= { bytes, broken };
+  }
+  return first!;
+}
+
+/** The old-GUI flatness check on one texture: its failing findings. */
+export type FlatTest = (img: RGBAImage) => string[];
+
+/** Why auto keeps a TGA because the DDS fails the flatness check where the TGA passes it (null: it does not). */
+export function dxtBreaksFlat(flat: FlatTest, tga: RGBAImage, dds: Uint8Array): string | null {
+  const after = flat(decodeGuiTexture(dds, "dds"));
+  if (!after.length) return null;
+  // a fault keyed by its box and kind: one the TGA has too is not the DDS's doing
+  const key = (m: string) => m.split(":").slice(0, 2).join(":");
+  const before = new Set(flat(tga).map(key));
+  const added = after.filter((m) => !before.has(key(m)));
+  if (!added.length) return null;
+  return `DXT breaks the flatness check: ${added[0]!.replace(/ \[.*\]$/, "")}${added.length > 1 ? ` (+${added.length - 1})` : ""}`;
 }
 
 /** How far DXT may move a redrawn face (0-255, any channel) before auto keeps a stock TGA as TGA. */
@@ -171,7 +214,10 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
   const outFormat = o.format ?? "auto";
   const list: AutoTexture[] = o.only ? AUTO.filter((t) => o.only!.includes(t.name)) : AUTO;
   const style = oldGuiStyle(o.palette);
-  const uv = o.uv ?? (list.some((t) => t.action === "redraw") ? (await collectOldGui(resman)).uv : new Map<string, UvEntry[]>());
+  const uv = o.uv ?? (list.some((t) => t.action === "redraw") || outFormat === "auto" ? (await collectOldGui(resman)).uv : new Map<string, UvEntry[]>());
+  // auto writes a TGA where its DXT would fail the old-GUI flatness check
+  const pal = { ink: o.palette.ink.slice(0, 3), allowed: lightFills(o.palette) };
+  const flatTest = (name: string): FlatTest => (img) => flatFailures(name, img, cellsFor(uv.get(name) ?? [], img.width, img.height), pal);
   for (const [i, t] of list.entries()) {
     await o.progress?.(i, list.length, t.name);
     const found = await resman.getAny(t.name, TEXTURE_EXTS);
@@ -201,11 +247,12 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
         drawn = t.action === "redraw" ? (redrawOldGui({ name: t.name, stock: before, uv: uv.get(t.name) ?? [], style, alpha: o.alpha === "opaque" ? curve : (a) => a }) ?? undefined) : recolourIconGround(before, style);
         if (!drawn) throw new Error("no redraw for it");
         const stockTxi = await resman.get(t.name, "txi");
-        const w = encodeRedraw(drawn, stock, ext, outFormat, !stockTxi || readTxi(new TextDecoder("latin1").decode(stockTxi)).mipmap);
+        const w = encodeRedraw(drawn, stock, ext, outFormat, !stockTxi || readTxi(new TextDecoder("latin1").decode(stockTxi)).mipmap, flatTest(t.name));
         bytes = w.bytes;
         outExt = w.ext;
         compression = w.compression;
         tgaBytes = w.tgaBytes;
+        if (w.note) notes.push(w.note);
         validation = redrawValidation(before, drawn, decodeGuiTexture(bytes, outExt));
       } else {
         const map = t.group === "swatch" ? swatchColour(o.palette, t.name, o.alpha) : frameColour(o.palette, t.name);
@@ -229,7 +276,8 @@ export async function reskin(resman: ResMan, o: ReskinOptions): Promise<ReskinRe
           if (outFormat !== "tga") {
             tgaBytes = bytes.length;
             const c = compressToDds(decodeTga(bytes));
-            const kept = keepTgaReason(c.error);
+            let kept = keepTgaReason(c.error);
+            if (outFormat === "auto" && !kept) kept = dxtBreaksFlat(flatTest(t.name), decodeGuiTexture(bytes, "tga"), c.bytes);
             if (outFormat === "dds" || !kept) {
               bytes = c.bytes;
               outExt = "dds";

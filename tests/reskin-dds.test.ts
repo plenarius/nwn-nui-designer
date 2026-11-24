@@ -5,6 +5,8 @@ import { decodeDds, decodeStored } from "../src/core/res/dds.js";
 import { type RGBAImage, newImage } from "../src/core/res/image.js";
 import { BIOWARE_DDS_HEADER, blockCount, mipLevels, readBiowareHeader } from "../src/core/reskin/bc.js";
 import { AUTO_LIMITS, compressToDds, keepTgaReason } from "../src/core/reskin/compress.js";
+import { flatFailures } from "../src/core/oldgui/runchecks.js";
+import { type FlatTest, dxtBreaksFlat } from "../src/core/reskin/reskin.js";
 
 /** A panel like the stock frames: a smooth dark gradient, a 1 px gold rule, a 2 px light rule. */
 function panel(w = 64, h = 32): RGBAImage {
@@ -98,5 +100,35 @@ describe("TGA to DDS", () => {
     for (let i = 0; i < 16; i++) im.data.set([(i * 97) % 256, (i * 53 + 80) % 256, (i * 151 + 30) % 256, 255], i * 4);
     const c = compressToDds(im);
     expect(keepTgaReason(c.error)).toMatch(/mean error/);
+  });
+});
+
+describe("auto and the old-GUI flatness check", () => {
+  const pal = { ink: [20, 24, 30], allowed: [] };
+  const flat: FlatTest = (img) => flatFailures("synthetic", img, [], pal);
+  // a dark face crossed every 8 rows by a rule of alternating red and green texels, brighter block by block: DXT1's
+  // 4 colours a block cannot hold face, red and green, and each block misses the face a little more
+  const face = (rules: boolean) => {
+    const im = newImage(64, 32, [42, 58, 74, 255]);
+    for (let by = 0; by < 32 && rules; by += 8) {
+      for (let x = 0; x < 64; x++) {
+        const t = 100 + (x >> 2) * 4;
+        im.data.set(x % 2 ? [t, 0, 0, 255] : [0, t, 0, 255], (by * 64 + x) * 4);
+      }
+    }
+    return im;
+  };
+
+  it("a face DXT1 cannot hold: the drawing passes, its DDS fails, so auto keeps the TGA", () => {
+    const im = face(true);
+    expect(flat(im)).toEqual([]);
+    const c = compressToDds(im);
+    expect(flat(c.decoded).length).toBeGreaterThan(0);
+    expect(dxtBreaksFlat(flat, im, c.bytes)).toMatch(/^DXT breaks the flatness check: x\d+-\d+ y\d+-\d+: gradient or noise/);
+  });
+
+  it("a plain face DXT1 holds exactly stays DDS", () => {
+    const im = face(false);
+    expect(dxtBreaksFlat(flat, im, compressToDds(im).bytes)).toBeNull();
   });
 });
