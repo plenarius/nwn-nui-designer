@@ -632,11 +632,11 @@ by side (the character record next to a NUI window of your module).
 
 | `--format` | A stock TGA is written as | Hak (Ink and brass, the game alone) |
 |---|---|---|
-| `auto` (default) | a DDS, unless its compression error is too high or DXT would move a flat face (then the TGA) | 11.9 MB (145 DDS, 16 TGA) |
+| `auto` (default) | a DDS, unless its compression error is too high, DXT would move a flat face, or the DDS fails the flatness check (then the TGA) | 10.9 to 12.5 MB by skin (16 to 23 TGA) |
 | `dds` | always a DDS | 9.3 MB (a few faces move in DXT: the flatness check fails on one) |
 | `tga` | always the TGA (24-bit when opaque) | 43.3 MB |
 
-A stock DDS stays a DDS whatever the option, with as many mip levels as the stock file has; a stock TGA whose txi
+A stock DDS stays a DDS (unless `auto` finds no DXT fit that passes the flatness check, below), with as many mip levels as the stock file has; a stock TGA whose txi
 says `mipmap 0` is written with its base level only (the client draws that level at every size). The DDS is BioWare's: a 20-byte header (width, height, 3 for DXT1 or 4
 for DXT5, the first level's size, the mean alpha), DXT1 for an opaque picture and DXT5 for one with alpha, every mip
 level down to 1 x 1 as the game's own files have them, rows stored bottom first. The `.txi` stays beside it. The
@@ -658,4 +658,18 @@ On Ink and brass, with the game alone, 16 stay TGA (4 MB): 13 button atlases and
 11 levels (`ctl_skill`, `ctl_class`, `ctl_opt_btn_key`, `ct_btn_srv_lst`, `ctl_pre_btn_save`, `pnl_party_bar`, ...),
 `ctl_btn_jnl_inv` (its kept icons), `ctl_pre_new1` (its picture's edges) and `gui_rgbc` (4 signal colours in one 4 x 4
 block: one DXT block holds 2).
+
+Last, `auto` runs the old-GUI flatness check (`pnpm old-gui check`) on each decoded DDS. When the DDS fails it where
+the drawing passes (a face that spreads more than 10 levels), it encodes again with face texels weighted 48 times,
+then not weighted (the endpoint search lands differently each time), and keeps the TGA if none passes. A redrawn stock
+DDS goes through the same tries, and through the redraw's own check (decoded mean error at most 6). So `old-gui check`
+passes on every built-in skin's export with the default format:
+
+| Skin | Hak | TGA |
+|---|---|---|
+| Ink | 11.9 MB | 16 |
+| Bronze | 11.7 MB | 17 |
+| Brass | 12.5 MB | 19 |
+| Oxblood | 12.5 MB | 23 |
+| Verdigris | 10.9 MB | 19 (one a stock DDS, `gui_chr_arrowbtn`) |
 
