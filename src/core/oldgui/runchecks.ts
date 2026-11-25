@@ -9,6 +9,9 @@ import type { RGBAImage } from "../res/image.js";
 import type { Cell } from "./cells.js";
 import type { CellsFile, InventoryRow } from "./inventory.js";
 import { decodeGuiTexture } from "./texture.js";
+import { ICON_ATLASES, type IconCell, iconShrink, measureIcons } from "./draw/icons.js";
+import type { ResMan } from "../res/resman.js";
+import { fromImage } from "./draw/raster.js";
 
 /** Colours a skin gives the checks: its panel fill, and the light fills it uses on purpose. */
 export interface CheckPalette {
@@ -56,7 +59,23 @@ export function flatFailures(name: string, img: RGBAImage, cells: readonly Cell[
   return checkFlat(name, img, cells, sk.rects, { allowed: pal.allowed, ink: pal.ink }).filter((f) => f.fail).map((f) => f.message);
 }
 
-export function runOldGuiChecks(rows: readonly InventoryRow[], cells: CellsFile, theme: ThemeInput | null, skinPalette: CheckPalette | null = null): ChecksResult {
+/** The inventory's old-gui-icons.json: each icon atlas's stock pictograms, cell by cell (numbers only, no art). */
+export interface IconsFile {
+  about: string;
+  textures: Record<string, IconCell[]>;
+}
+
+/** The stock pictograms of every icon atlas the game has, from its own textures. */
+export async function stockIcons(resman: ResMan): Promise<IconsFile> {
+  const textures: Record<string, IconCell[]> = {};
+  for (const name of Object.keys(ICON_ATLASES)) {
+    const f = await resman.getAny(name, ["dds", "tga"]);
+    if (f) textures[name] = measureIcons(name, fromImage(decodeGuiTexture(f[0], f[1])));
+  }
+  return { about: "each icon button's stock pictogram (pnpm old-gui inventory): cell, extent inside it, texel count", textures };
+}
+
+export function runOldGuiChecks(rows: readonly InventoryRow[], cells: CellsFile, theme: ThemeInput | null, skinPalette: CheckPalette | null = null, icons: IconsFile | null = null): ChecksResult {
   const findings: Finding[] = [];
   const counts: ChecksResult["counts"] = {};
   const count = (k: string, checked: number, f: Finding[]) => {
@@ -105,6 +124,28 @@ export function runOldGuiChecks(rows: readonly InventoryRow[], cells: CellsFile,
     if (soft.size) flat.push({ check: "flatness", texture: "", message: `${soft.size} lines of stretched cells end on a frame's 1:1 rule (a soft edge of half a texel, kept so the frame keeps its line)`, fail: false });
     count("flatness", checked, flat);
     count("fonts", theme.fonts.size, checkFonts(theme.fonts));
+    if (icons) {
+      // icon size: no icon button's pictogram smaller than the stock's
+      const sized: Finding[] = [];
+      let n = 0;
+      for (const [name, list] of Object.entries(icons.textures)) {
+        const f = theme.textures.get(name);
+        if (!f) continue;
+        n++;
+        let img;
+        try {
+          img = fromImage(decodeGuiTexture(f.bytes, f.ext));
+        } catch (e) {
+          sized.push({ check: "icon size", texture: name, message: `unreadable: ${errorText(e)}`, fail: true });
+          continue;
+        }
+        for (const c of list) {
+          const why = iconShrink(img, c);
+          if (why) sized.push({ check: "icon size", texture: name, message: why, fail: true });
+        }
+      }
+      count("icon size", n, sized);
+    }
   }
   return { findings, failures: findings.filter((f) => f.fail).length, counts };
 }

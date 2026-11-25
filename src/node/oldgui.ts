@@ -12,7 +12,8 @@
  *            and haks (as `pnpm reskin` reads them), gives every texture a role, and writes into DIR:
  *              old-gui-inventory.tsv   one row per texture: role, treatment, drawn or not, where it is used
  *              old-gui-cells.json      every UV cell the models sample from each drawn texture
- *            Both are names and numbers only (no art), so a theme's repository may keep them and run the checks in
+ *              old-gui-icons.json      each icon button's stock pictogram: its cell, extent and texel count
+ *            All are names and numbers only (no art), so a theme's repository may keep them and run the checks in
  *            CI without the game. --client FILE: the game executable to read the built-in names from (else the
  *            one in the game's bin/ folder). --roles FILE: your own decisions (old-gui-roles.json, see the guide),
  *            for textures your haks add.
@@ -25,6 +26,8 @@
  *              fill bars   every bar the client fills has previews at three levels or more
  *              flatness    chrome faces are flat, stretched cells flat along their stretch
  *              fonts       the old GUI's fonts, when the theme replaces them, are all three and the same font
+ *              icon size   no icon button's pictogram (party bar, map buttons, creation arrows and help) is smaller
+ *                          than the stock's: inward by more than 2 texels, or under 85% of its texels
  *            Without --theme only the first, third and fourth run. --skin SKIN: the skin the theme was made from
  *            (its light fills are allowed as faces; else the export's manifest beside the theme says). --json: the
  *            results as JSON.
@@ -61,6 +64,7 @@ import { findClient } from "./oldguiclient.js";
 import { oldGuiStyle } from "../core/oldgui/draw/index.js";
 import { parseHex } from "../core/reskin/palette.js";
 import { frameCheck, previewPair, previewWorld } from "./oldguipreview.js";
+import { stockIcons } from "../core/oldgui/runchecks.js";
 
 const USAGE =
   "pnpm old-gui inventory -o DIR [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks] [--client FILE] [--roles FILE] | pnpm old-gui check DIR [--theme DIR] [--skin SKIN] [--json] [--frames [--game DIR] [--frames-out DIR]] | pnpm old-gui previews -o DIR --theme DIR [--skin SKIN] [--only KEY,...] [--game DIR] [--hak FILE]... [--override DIR]... [--no-haks]";
@@ -96,12 +100,14 @@ async function inventory(args: string[]): Promise<number> {
   mkdirSync(a.out, { recursive: true });
   writeFileSync(join(a.out, "old-gui-inventory.tsv"), inventoryTsv(inv.rows));
   writeFileSync(join(a.out, "old-gui-cells.json"), cellsJson(inv.cells));
+  // the icon buttons' stock pictograms: cells, extents and counts (numbers only), for the icon size check
+  writeFileSync(join(a.out, "old-gui-icons.json"), `${JSON.stringify(await stockIcons(resman), null, 1)}\n`);
   const counts = inventoryCounts(inv.rows);
   const bad = [...c.models.values()].filter((m) => m.error);
   console.log(`${c.models.size} models (${bad.length} unreadable), ${c.layouts.size} layouts, ${inv.rows.length} textures, ${inv.rows.filter((r) => r.drawn).length} drawn`);
   console.log(`  ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   for (const m of bad.slice(0, 10)) console.log(`  unreadable model ${m.name} (${m.source}): ${m.error}`);
-  console.log(`wrote ${join(a.out, "old-gui-inventory.tsv")} and ${join(a.out, "old-gui-cells.json")}`);
+  console.log(`wrote ${join(a.out, "old-gui-inventory.tsv")}, ${join(a.out, "old-gui-cells.json")} and ${join(a.out, "old-gui-icons.json")}`);
   return 0;
 }
 

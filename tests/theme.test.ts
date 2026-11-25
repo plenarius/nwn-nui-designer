@@ -201,7 +201,7 @@ describe("export", () => {
 
   it("runs the original-GUI checks on output A and reports them", async () => {
     const r = await exportTheme({ project: builtIn("bronze"), resman: fakeGame(), format: "tga" });
-    expect(Object.keys(r.checks.counts)).toEqual(["categories", "state icons", "fill bars", "coverage", "flatness", "fonts"]);
+    expect(Object.keys(r.checks.counts)).toEqual(["categories", "state icons", "fill bars", "coverage", "flatness", "fonts", "icon size"]);
     // the synthetic game has no models, so its inventory knows none of the textures: coverage says so
     expect(r.checks.findings.find((f) => f.check === "coverage")?.message).toMatch(/the inventory has no such texture/);
     expect(r.report).toMatch(/## Original GUI checks[\s\S]*coverage: \d+ checked/);

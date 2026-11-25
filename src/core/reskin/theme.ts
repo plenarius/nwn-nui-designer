@@ -22,7 +22,7 @@ import { type Manifest, type ReskinResult, TEXTURE_EXTS, reportMarkdown, reskin 
 import { lightFills } from "../oldgui/checks.js";
 import { collectOldGui } from "../oldgui/collect.js";
 import { buildInventory } from "../oldgui/inventory.js";
-import { type ChecksResult, runOldGuiChecks, themeInput } from "../oldgui/runchecks.js";
+import { type ChecksResult, runOldGuiChecks, stockIcons, themeInput } from "../oldgui/runchecks.js";
 import { type OldGuiFonts, oldGuiFonts } from "./oldguifonts.js";
 import { AUTO, type ManualClass } from "./textures.js";
 
@@ -312,7 +312,7 @@ export async function exportTheme(o: ThemeOptions): Promise<ThemeResult> {
 
   const light = lightCheck(p.style);
   const inv = buildInventory(collection);
-  const checks = runOldGuiChecks(inv.rows, inv.cells, themeInput(Object.entries(stock), res.manifest), { ink: palette.ink, allowed: lightFills(palette) });
+  const checks = runOldGuiChecks(inv.rows, inv.cells, themeInput(Object.entries(stock), res.manifest), { ink: palette.ink, allowed: lightFills(palette) }, await stockIcons(resman));
   const result: ThemeResult = { title, stock, prefixed, fonts, checks, skinItems, reskin: res, light, report: "" };
   result.report = themeReport(result, plan.leftOut);
   return result;

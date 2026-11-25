@@ -6,7 +6,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Finding } from "../core/oldgui/checks.js";
 import { type CellsFile, readInventoryTsv } from "../core/oldgui/inventory.js";
-import { type CheckPalette, runOldGuiChecks, themeInput } from "../core/oldgui/runchecks.js";
+import { type CheckPalette, type IconsFile, runOldGuiChecks, themeInput } from "../core/oldgui/runchecks.js";
 import { parseHex } from "../core/reskin/palette.js";
 
 export interface CheckRun {
@@ -62,7 +62,9 @@ export async function runChecks(dir: string, themeDir: string | null, skinPalett
         findManifest(theme),
       )
     : null;
-  const { findings, failures, counts } = runOldGuiChecks(rows, cells, input, skinPalette);
+  const iconsPath = join(dir, "old-gui-icons.json");
+  const icons = existsSync(iconsPath) ? (JSON.parse(readFileSync(iconsPath, "utf8")) as IconsFile) : null;
+  const { findings, failures, counts } = runOldGuiChecks(rows, cells, input, skinPalette, icons);
 
   // at most a few lines per texture and check: a recoloured panel can have dozens of faults of one kind
   const lines: string[] = [];
@@ -80,7 +82,8 @@ export async function runChecks(dir: string, themeDir: string | null, skinPalett
     lines.push(`${fail === "true" ? "FAIL" : "note"}  ${check}: ${texture}: ${n - PER} more (--json lists them all)`);
   }
   for (const [k, v] of Object.entries(counts)) lines.push(`${k}: ${v.checked} checked, ${v.failed} failed`);
-  if (!theme) lines.push("no theme folder (--theme DIR): coverage, flatness and fonts not run");
+  if (!theme) lines.push("no theme folder (--theme DIR): coverage, flatness, fonts and icon size not run");
+  else if (!icons) lines.push("no old-gui-icons.json in the inventory folder (an older inventory): icon size not run");
   lines.push(failures ? `${failures} failures` : "all checks pass");
   let glow: number[] | null = null;
   if (theme) {

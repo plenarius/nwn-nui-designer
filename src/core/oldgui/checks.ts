@@ -17,7 +17,7 @@ import { type Cell, cellRefs, claimed, edgeOnly, halfCover, isStretched, spans, 
 import type { CellsFile, InventoryRow } from "./inventory.js";
 import { FILL_BARS, type FillBar, ICONS, OLD_GUI_FONTS, PICTURES, STATE_ICONS } from "./roles.js";
 
-export type CheckName = "categories" | "coverage" | "state icons" | "fill bars" | "flatness" | "fonts";
+export type CheckName = "categories" | "coverage" | "state icons" | "fill bars" | "flatness" | "fonts" | "icon size";
 
 export interface Finding {
   check: CheckName;
