@@ -138,13 +138,14 @@ const linesOnly: Hand = (st, s) => {
 };
 
 /** Icon buttons: each cell a button in its state (its frame on the cell's own edge), the stock pictogram of cell
- * src[i] at its own texels, flat: normal the mark, hover the glow on the pressed fill, disabled the disabled rule. */
+ * src[i] at its own texels, flat: normal the mark, hover the glow on the pressed fill, disabled the disabled rule's. */
 function iconButtons(img: Pic, st: Pic, s: OldGuiStyle, name: string, states: State[]): void {
   const { kind, cells, src } = iconCells(name, st);
   cells.forEach((r, i) => {
     const state = states[i % states.length]!;
-    drawRectFrame(img, r[0], r[1], r[2], r[3], state, s);
-    if (state === "hilite") fillRect(img, r[0] + 3, r[1] + 3, r[2] - 3, r[3] - 3, s.press);
+    // hover: the pressed fill inside the rule (no glow rule: the icon covers most of it and merges with it)
+    drawRectFrame(img, r[0], r[1], r[2], r[3], state === "hilite" ? "normal" : state, s);
+    if (state === "hilite") fillRect(img, r[0] + 2, r[1] + 2, r[2] - 2, r[3] - 2, s.press);
     const col = state === "hilite" || state === "pressed" ? s.glow : state === "disabled" ? s.dline : s.mark;
     putIcon(img, r, silhouette(st, cells[src[i]!]!, kind), col);
   });
