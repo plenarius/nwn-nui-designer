@@ -213,12 +213,13 @@ It reads:
   `gui_icon_%dx%d...`, `pnl_mapgen_%dx%d`);
 - every texture a `.txi` names (environment maps and the like), followed until nothing new turns up.
 
-It writes two files, names and numbers only (no art), so a theme's own repository may keep them:
+It writes three files, names and numbers only (no art), so a theme's own repository may keep them:
 
 | File | |
 |---|---|
 | `old-gui-inventory.tsv` | one row per texture: `group` (chrome, icon, content, text, cursor, font, scene, none), `kind` (button, panel, edit, tab, cells, scrollbar, slider, checkbox, bar, row, item-cell, radial, shape, ...), `role`, `treatment`, `drawn`, its format and size and where it is read from, its txi (`filter 0`, `mipmap 0`, `clamp 3`), and where it is used: `models`, `layouts`, `client`, `txi_from`, and the controls that read a different cell of it per state |
 | `old-gui-cells.json` | every UV cell the models sample from each drawn texture: the texels, how many screen pixels each texel becomes along each axis (0 when the client resizes it at run time), and which model, node and animation (state) reads it |
+| `old-gui-icons.json` | each icon button's stock pictogram (the party bar's buttons, the map's buttons, the creation wizard's arrows and help button): its cell, how far it reaches inside the cell, and its texel count |
 
 **Treatments.** `redraw` (chrome: drawn again in the skin's style), `flat` (chrome that is already flat cells or
 marks), `icon` (kept, or its ground recoloured), `hold` (left for you: content art, baked text and logos, cursors,
@@ -263,6 +264,7 @@ marks) count as faces on purpose. Exit code 0 when everything passes, 1 when a c
 | fill bars | a bar the client fills (a progress-bar role, or a cell a model draws with its `percentage` animation) has no previews at three levels or more from empty to full |
 | flatness | a chrome face (a region at least 3 texels thick) whose colour spreads over 10 levels (a bevel, ramp, vignette, mottling); a face lighter than the skin's fill that is not one of its light fills; a cell a model draws at 3 or more pixels per texel (or resizes at run time) whose texels change along that axis: filtering spreads any change over the whole stretch. Pictures inside frames, icons in a control's atlas and a few known cases are skipped, each with its reason |
 | fonts | the theme replaces one or two of the old GUI's three font files, not all three ([Fonts](#the-original-guis-fonts)) |
+| icon size | an icon button's pictogram is smaller than the stock's: a side reaches more than 2 texels short of the stock's, or it keeps under 85% of the stock's texels. The redraw keeps each stock pictogram texel for texel inside a frame on the cell's own edge (`src/core/oldgui/draw/icons.ts`); the party bar's icons once came out smaller and narrower, the redraw having guessed 14 equal plates and kept only the darkest core of each icon. Needs the inventory's `old-gui-icons.json` |
 
 On `export-theme ink` every check passes: coverage 148 of 148 redrawn, flatness on the 155 textures it reads (148
 chrome and the flat cells), with the game alone (EE 8193.37). Before the redraw, coverage failed on 145 of the 148

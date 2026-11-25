@@ -6,7 +6,8 @@ import { type UvEntry, cellsFor } from "../cells.js";
 import { ICONS } from "../roles.js";
 import { type Pic, type RGB, clonePic, fillRect, lumOf, pic, ring, setA, setRgb } from "./raster.js";
 import { copyRect, redrawRegions, redrawShape, redrawTrace } from "./redraw.js";
-import { drawRectFrame, lineMask } from "./rules.js";
+import { iconCells, putIcon, silhouette } from "./icons.js";
+import { drawRectFrame } from "./rules.js";
 import type { OldGuiStyle, State } from "./style.js";
 
 type Rect = [number, number, number, number];
@@ -72,15 +73,13 @@ function triangle(img: Pic, cx: number, cy: number, size: number, up: boolean, c
   }
 }
 
-/** 32x16: a down arrow button (left) and an up one (right). */
+/** 32x16: a down arrow button (left) and an up one (right), each the stock arrow's shape, flat. */
 const arrowbtn: Hand = (st, s) => {
   const img = blank(st, s.out);
-  for (const [k, up] of [
-    [0, false],
-    [1, true],
-  ] as const) {
-    drawRectFrame(img, k * 16, 0, k * 16 + 16, 16, "normal", s);
-    triangle(img, k * 16 + 8, 8, 4, up, s.mark, null);
+  const { kind, cells } = iconCells("gui_chr_arrowbtn", st);
+  for (const r of cells) {
+    drawRectFrame(img, r[0], r[1], r[2], r[3], "normal", s);
+    putIcon(img, r, silhouette(st, r, kind), s.mark);
   }
   fillRect(img, 0, 0, img.w, img.h, null, 255);
   return img;
@@ -138,39 +137,23 @@ const linesOnly: Hand = (st, s) => {
   return img;
 };
 
-function percentile(v: number[], q: number): number {
-  const a = [...v].sort((x, y) => x - y);
-  const r = (a.length - 1) * q;
-  const f = Math.floor(r);
-  return a[f]! + (a[Math.min(a.length - 1, f + 1)]! - a[f]!) * (r - f);
+/** Icon buttons: each cell a button in its state (its frame on the cell's own edge), the stock pictogram of cell
+ * src[i] at its own texels, flat: normal the mark, hover the glow on the pressed fill, disabled the disabled rule's. */
+function iconButtons(img: Pic, st: Pic, s: OldGuiStyle, name: string, states: State[]): void {
+  const { kind, cells, src } = iconCells(name, st);
+  cells.forEach((r, i) => {
+    const state = states[i % states.length]!;
+    // hover: the pressed fill inside the rule (no glow rule: the icon covers most of it and merges with it)
+    drawRectFrame(img, r[0], r[1], r[2], r[3], state === "hilite" ? "normal" : state, s);
+    if (state === "hilite") fillRect(img, r[0] + 2, r[1] + 2, r[2] - 2, r[3] - 2, s.press);
+    const col = state === "hilite" || state === "pressed" ? s.glow : state === "disabled" ? s.dline : s.mark;
+    putIcon(img, r, silhouette(st, cells[src[i]!]!, kind), col);
+  });
 }
 
-/** Buttons with a symbol: each rect a button in its state, the symbol's texels one flat colour. */
-function glyphButton(st: Pic, s: OldGuiStyle, rects: [Rect, State][], glyph: "bright" | "dark", base?: Pic): Pic {
-  const img = base ?? blank(st, s.out);
-  const { L } = lineMask(st);
-  const { w } = st;
-  for (const [[x0, y0, x1, y1], state] of rects) {
-    const sub: number[] = [];
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) sub.push(L[y * w + x]!);
-    const thr = glyph === "bright" ? Math.max(70, percentile(sub, 0.7)) : percentile(sub, 0.5) - 45;
-    const b = glyph === "bright" ? 5 : 3;
-    const g: [number, number][] = [];
-    for (let y = y0 + b; y < y1 - b; y++) {
-      for (let x = x0 + b; x < x1 - b; x++) {
-        const l = L[y * w + x]!;
-        if (glyph === "bright" ? l > thr : l < thr) g.push([x, y]);
-      }
-    }
-    drawRectFrame(img, x0, y0, x1, y1, state, s);
-    const col = state === "hilite" ? s.glow : state === "disabled" ? s.dline : s.mark;
-    for (const [x, y] of g) setRgb(img, x, y, col);
-  }
-  if (!base) for (let i = 0; i < st.w * st.h; i++) img.d[i * 4 + 3] = st.d[i * 4 + 3] === 0 ? 0 : 255;
-  return img;
-}
-
+/** 32x32 help button: a button around the stock "?" at its own texels. */
 const helpBtn: Hand = (st, s) => {
+  const img = blank(st, s.out);
   let x0 = st.w;
   let y0 = st.h;
   let x1 = 0;
@@ -185,48 +168,34 @@ const helpBtn: Hand = (st, s) => {
       }
     }
   }
-  return glyphButton(st, s, [[[x0, y0, x1, y1], "normal"]], "bright");
+  drawRectFrame(img, x0, y0, x1, y1, "normal", s);
+  const { kind, cells } = iconCells("ctl_cg_btn_help", st);
+  putIcon(img, cells[0]!, silhouette(st, cells[0]!, kind), s.mark);
+  for (let i = 0; i < st.w * st.h; i++) img.d[i * 4 + 3] = st.d[i * 4 + 3] === 0 ? 0 : 255;
+  return img;
 };
 
-/** Party-bar buttons (64x64): plates x 14-49 at up, hover and disabled rows from the models' UVs. */
+/** Party-bar buttons (64x64): plates x 14-49, up, hover and disabled, each with the up plate's pictogram. */
 const pbBut: Hand = (st, s) => {
-  const h = st.h;
-  const rects: [Rect, State][] = (
-    [
-      [0.922, 0.656, "normal"],
-      [0.641, 0.375, "hilite"],
-      [0.359, 0.094, "disabled"],
-    ] as const
-  ).map(([v1, v0, state]) => [[14, Math.round((1 - v1) * h), 49, Math.round((1 - v0) * h)], state]);
-  return glyphButton(st, s, rects, "dark");
+  const img = blank(st, s.out);
+  iconButtons(img, st, s, "pb_but_pvp", ["normal", "hilite", "disabled"]);
+  for (let i = 0; i < st.w * st.h; i++) img.d[i * 4 + 3] = st.d[i * 4 + 3] === 0 ? 0 : 255;
+  return img;
 };
 
-/** 64x64: three columns of 16x16 map buttons (rows: up, down, disabled, hover) with their glyph; the pins column kept. */
+/** 64x64: three columns of 16x16 map buttons (rows: up, down, disabled, hover) with the stock glyph, flat; the pins
+ * column kept. */
 const mapPieces: Hand = (st, s) => {
   const img = clonePic(st);
-  const { L } = lineMask(st);
   const states: State[] = ["normal", "pressed", "disabled", "hilite"];
-  for (let c = 0; c < 3; c++) {
-    for (let r = 0; r < 4; r++) {
-      const x0 = c * 16;
-      const y0 = r * 16;
-      // the glyph: brighter than its plate (the stock's pressed plates are mid grey)
-      const inner: number[] = [];
-      for (let y = y0 + 2; y < y0 + 14; y++) for (let x = x0 + 2; x < x0 + 14; x++) inner.push(L[y * st.w + x]!);
-      const med = percentile(inner, 0.5);
-      const g: [number, number][] = [];
-      for (let y = y0 + 2; y < y0 + 14; y++) {
-        for (let x = x0 + 2; x < x0 + 14; x++) {
-          const l = L[y * st.w + x]!;
-          if (l > Math.max(60, med + 25)) g.push([x, y]);
-        }
-      }
-      drawRectFrame(img, x0, y0, x0 + 16, y0 + 16, states[r]!, s);
-      const col = states[r] === "hilite" ? s.glow : states[r] === "disabled" ? s.dline : s.mark;
-      for (const [x, y] of g) setRgb(img, x, y, col);
-      fillRect(img, x0, y0, x0 + 16, y0 + 16, null, 255);
-    }
-  }
+  const { kind, cells } = iconCells("gui_map_pieces", st);
+  cells.forEach((r, i) => {
+    const state = states[Math.floor(i / 3)]!;
+    const g = silhouette(st, r, kind);
+    drawRectFrame(img, r[0], r[1], r[2], r[3], state, s);
+    putIcon(img, r, g, state === "hilite" ? s.glow : state === "disabled" ? s.dline : s.mark);
+    fillRect(img, r[0], r[1], r[2], r[3], null, 255);
+  });
   return img;
 };
 
@@ -306,26 +275,13 @@ const invContain: Hand = (st, s, { uv, alpha }) => {
   return img;
 };
 
-/** 128x256: member frames (panel art) and a column of 14 button plates (each party-bar button's normal and hover
- * face, alternating), drawn as buttons with their symbol flat. */
+/** 128x256: member frames (panel art) and a column of 14 plates at x 83-118, each party-bar button's normal and hover
+ * plate in turn (17 rows each; the models read them 1:1, pressed one row lower): buttons with the stock pictogram at
+ * its full size and place. */
 const partyBar: Hand = (st, s, { uv, alpha }) => {
   const img = redrawRegions(st, uv, s, alpha, "panel");
-  const L = lumOf(st);
-  const rows: number[] = [];
-  for (let y = 0; y < st.h; y++) {
-    let m = 0;
-    for (let x = 84; x < 118; x++) m += L[y * st.w + x]!;
-    if (m / 34 > 60) rows.push(y);
-  }
-  if (!rows.length) return img;
-  const top = Math.min(...rows);
-  const bot = Math.max(...rows) + 1;
-  const pitch = (bot - top) / 14;
-  const rects: [Rect, State][] = [];
-  for (let i = 0; i < 14; i++) rects.push([[83, Math.round(top + i * pitch), 119, Math.round(top + (i + 1) * pitch) - 1], i % 2 === 0 ? "normal" : "hilite"]);
   fillRect(img, 82, 0, 120, img.h, s.out);
-  const g = glyphButton(st, s, rects, "dark");
-  for (const [r] of rects) copyRect(img, g, r);
+  iconButtons(img, st, s, "pnl_party_bar", ["normal", "hilite"]);
   for (let i = 0; i < st.w * st.h; i++) if (st.d[i * 4 + 3] === 0) img.d[i * 4 + 3] = 0;
   return img;
 };
