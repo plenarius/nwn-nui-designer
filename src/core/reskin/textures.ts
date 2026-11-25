@@ -25,6 +25,11 @@ export interface AutoTexture {
 /** Flat colour cells: already one colour per cell, so a colour map is all they need. */
 export const FLAT_CELLS = ["gui_replace01", "gui_replace02", "gui_replace03", "gui_replace04", "gui_replace05", "gui_replace06", "gui_rgbc", "gui_lightning", "gui_gring01", "gui_pre_chkbox"];
 
+/** Flat chrome the frame mapping recolours (Ink and brass's treatment): the close X, the translucent window fills
+ * (FILLS, in colour.ts) and the item outline strips, which keep their alpha. Left out, they stayed stock. */
+export const FLAT_CHROME = ["gui_ig_xbutton", "gui_transprnt", "gui_transprnt2", "gui_pregame_bkg"];
+export const OUTLINES = ["gui_inv_1x1_ol", "gui_inv_1x2_ol", "gui_inv_2x1_ol", "gui_inv_2x2_ol", "gui_inv_2x4_ol"];
+
 /** The pre-game pages: character select, the creation wizard, the server list, load and save. */
 const PREGAME = /^(ct_btn_srv|pnl_srv|gui_srv|ctl_pre|pre_load|ctl_btn_pre|cg_main|gui_pre|pnl_enable|ctl_edt_mod|ctl_cg|pnl_cg|pnl_chr_appear|pnl_con_prtl|ctl_con_prtl|pnl_playmod|ctl_class|ctl_skill|ctl_att|pnl_feats|pnl_help|pnl_select|ctl_btn_169x39|pnl_util_okt|pnl_connectstat|pnl_opt_gen|gui_ig_chartabs|gui_spell_hilite)/;
 
@@ -40,6 +45,8 @@ function groupOf(name: string): Group {
 export const AUTO: AutoTexture[] = [
   ...REDRAWN.map((name) => ({ name, group: groupOf(name), action: "redraw" as const })),
   ...FLAT_CELLS.map((name) => ({ name, group: "swatch" as const, action: "recolour" as const })),
+  ...FLAT_CHROME.map((name) => ({ name, group: "frame" as const, action: "recolour" as const })),
+  ...OUTLINES.map((name) => ({ name, group: "frame" as const, action: "recolour" as const, keepAlpha: true })),
   ...ICON_GROUNDS.map((name) => ({ name, group: "icon" as const, action: "recolour" as const, keepAlpha: true })),
 ];
 
