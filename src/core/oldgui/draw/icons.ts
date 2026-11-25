@@ -150,7 +150,7 @@ export function putIcon(img: Pic, [x0, y0, x1]: Rect, m: Mask, col: RGB): void {
 }
 
 /** The pictogram of a theme's cell: texels 20 levels off the face (the inside, against its outer ring of texels) or
- * off their own frame ring (the outer three rings), less rows and columns that run across the cell (frame rules). */
+ * off their own frame ring (the outer three rings), less rules of one colour that run across the cell. */
 export function themeIcon(img: Pic, rect: Rect, ring = 3, thr = 20): Mask {
   const { L, w, h } = cellLum(img, rect);
   const m = new Uint8Array(w * h);
@@ -167,12 +167,13 @@ export function themeIcon(img: Pic, rect: Rect, ring = 3, thr = 20): Mask {
   }
   const face = median(ringOf(ring));
   for (let y = ring; y < h - ring; y++) for (let x = ring; x < w - ring; x++) if (Math.abs(L[y * w + x]! - face) > thr) m[y * w + x] = 1;
-  const rows = Array.from({ length: h }, (_, y) => m.subarray(y * w, y * w + w).reduce((s, v) => s + v, 0) > 0.8 * w);
-  const cols = Array.from({ length: w }, (_, x) => {
-    let s = 0;
-    for (let y = 0; y < h; y++) s += m[y * w + x]!;
-    return s > 0.8 * h;
-  });
+  // a rule: set across 80% of the line, in one colour (a frame drawn off the cell's edge)
+  const rule = (idx: number[]) => {
+    const on = idx.filter((i) => m[i]).map((i) => L[i]!);
+    return on.length > 0.8 * idx.length && Math.max(...on) - Math.min(...on) < 30;
+  };
+  const rows = Array.from({ length: h }, (_r, y) => rule(Array.from({ length: w }, (_c, x) => y * w + x)));
+  const cols = Array.from({ length: w }, (_c, x) => rule(Array.from({ length: h }, (_r, y) => y * w + x)));
   return m.map((v, i) => (v && !rows[Math.floor(i / w)] && !cols[i % w] ? 1 : 0));
 }
 
