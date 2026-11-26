@@ -300,9 +300,9 @@ export function styleStates(paths: string[]): StyleFileState[] {
 }
 
 /** Checks new settings before they are written: each message is keyed by the setting. */
-export async function checkSettings(n: IniSettings): Promise<Record<string, string>> {
+export async function checkSettings(n: IniSettings, base = REPO_ROOT): Promise<Record<string, string>> {
   const errors: Record<string, string> = {};
-  const r = (p: string) => resolvePath(p, REPO_ROOT);
+  const r = (p: string) => resolvePath(p, base);
   if (n.game) {
     const why = notGameReason(r(n.game));
     if (why) errors.game = why;
@@ -497,7 +497,7 @@ export function localApi(o: LocalApiOptions = {}) {
             return;
           }
           const next_ = toIniSettings(JSON.parse(await readBody(req)));
-          const errors = await checkSettings(next_);
+          const errors = await checkSettings(next_, o.base);
           if (Object.keys(errors).length) {
             send(res, 200, { saved: false, error: Object.values(errors).join("; "), errors });
             return;

@@ -153,6 +153,23 @@ The ignored folder `local/` holds inputs that must never be committed:
 - `local/res/layo-skin/`: loose skin files laid over the haks (named for Layonara's skin, the maintainer's example; any
   server's loose skin files can go there).
 
+## The desktop app and releases
+
+The desktop app (`electron/`) is the built editor and the same local API in an Electron window: `main.ts` serves
+`dist/` and `localApi()` on a random loopback port and shows it as `app://nui-designer/`, so the page keeps one origin
+(its storage) across starts. It adds no editor code of its own; anything that works with `pnpm dev` works there.
+
+```bash
+pnpm app                        # build, bundle electron/ and start it from the checkout
+pnpm app:dist                   # an unsigned package for this system in release/ (Linux: the AppImage)
+xvfb-run -a pnpm app:smoke --app release/nwn-nui-designer-*-x86_64.AppImage   # start it and check it (Linux)
+```
+
+CI packages the AppImage and runs `pnpm app:smoke` on every pull request. A release is a version bump in
+`package.json` merged to `main`, then a `v<version>` tag on that merge: `.github/workflows/release.yml` builds and signs
+the three installers and drafts a GitHub release with them, the update files and `SHA256SUMS`. The maintainer publishes
+the draft; the apps out there see the new version only then.
+
 ## Code layout
 
 `src/core` is everything that is not UI (no DOM, no Node, no framework); `src/app` is the React editor; `src/node` the

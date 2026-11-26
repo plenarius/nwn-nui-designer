@@ -15,5 +15,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "tests", "golden", "tools"]
+  "include": ["src", "tests", "golden", "tools", "electron"]
 }

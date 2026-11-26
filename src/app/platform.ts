@@ -116,6 +116,9 @@ export function treeFromFileList(files: FileList): BrowserTree {
   return new BrowserTree(label, out);
 }
 
+/** The desktop app (electron/preload.ts): its settings file is in the user's config folder, not the repository's. */
+export const isDesktopApp = typeof window !== "undefined" && !!(window as unknown as { nuiDesigner?: { desktop?: boolean } }).nuiDesigner?.desktop;
+
 export const hasDirectoryPicker = typeof window !== "undefined" && "showDirectoryPicker" in window;
 
 export async function pickDirectory(): Promise<BrowserTree | null> {
