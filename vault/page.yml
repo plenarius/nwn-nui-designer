@@ -1,0 +1,24 @@
+# The Neverwinter Vault page, copied there after each release by the maintainer's Vault update step.
+# description.html is the page body; {{app}} is the version of the latest published release.
+node: 31816
+version: "{{app}}"
+description: description.html
+releases:
+  app: plenarius/nwn-nui-designer
+checksums:
+  app: [SHA256SUMS]
+files:
+  - release: app
+    asset: "nwn-nui-designer-{{app}}-windows-x64-setup.exe"
+    upload_as: "nwn-nui-designer-{{app}}-windows-x64-setup.exe"
+    label: "Windows 10 and 11 (x64) installer"
+  - release: app
+    # The Vault doesn't take dmg files; the release's zip holds the same app.
+    asset: "nwn-nui-designer-{{app}}-mac-universal.zip"
+    upload_as: "nwn-nui-designer-{{app}}-mac-universal.zip"
+    label: "macOS 12 or later (Apple silicon and Intel)"
+  - release: app
+    asset: "nwn-nui-designer-{{app}}-x86_64.AppImage"
+    upload_as: "nwn-nui-designer-{{app}}-x86_64.7z"
+    pack: 7z # the Vault doesn't take AppImage files
+    label: "Linux (x86_64) AppImage"
