@@ -20,6 +20,7 @@ the two (see [Fidelity](#fidelity)).
 - [Mobile clients](#mobile-clients)
 - [Skin editor](#skin-editor)
 - [Local settings and the local API](#local-settings-and-the-local-api)
+- [The desktop app](#the-desktop-app)
 - [The check command](#the-check-command)
 - [Fidelity](#fidelity)
 - [Open questions](#open-questions)
@@ -387,6 +388,25 @@ disk for the page, instead of browser folder pickers that list every file of an 
   configured folder.
 - On start the editor asks for the state first, so a configured game draws from the first frame. **The browser
   pickers stay as the fallback** when there is no local API (the static `dist/` elsewhere).
+
+## The desktop app
+
+Most users want an installer, not Node and pnpm. The app is a shell around what already exists, so the two ways of
+running it cannot drift apart.
+
+- **Electron**, because the editor is a web page and its local API is Node: both run unchanged. **electron-builder**
+  (not Forge) because one config makes all three packages (dmg and zip, NSIS, AppImage), the update files
+  electron-updater reads, and takes a custom Windows signing hook, which Azure Artifact Signing through jsign needs.
+- **The page is served over `app://nui-designer/`**, a privileged scheme whose handler forwards each request to a
+  loopback server running `localApi()` and serving `dist/`. A plain `http://127.0.0.1:<random port>` would change the
+  page's origin on every start and lose its storage (autosave, recent windows). The server takes only requests that
+  carry the run's token, and `localApi()` keeps its own loopback and Host checks.
+- **Settings**: `nui-designer.ini` in the user's config folder (`app.getPath("userData")`), relative paths from there
+  (`LoadOptions.base`); `NUI_DESIGNER_INI` and the other variables still win. Install detection is `pnpm dev`'s.
+- **Locked down**: context isolation, sandbox, no Node in the page; remote requests refused; other sites open in the
+  browser; no menu bar on Windows and Linux, so no accelerator takes a key the editor uses. Fuses turn off
+  `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` and the inspector flags, and load the app only from its asar.
+- **Updates ask first**: the check is automatic, the download and install are not.
 
 ## The check command
 

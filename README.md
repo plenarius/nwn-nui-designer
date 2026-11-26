@@ -13,8 +13,8 @@ A visual designer for Neverwinter Nights: Enhanced Edition **NUI** windows: the 
 - **Command line.** The same code runs in Node: draw windows to PNG, check windows in CI (the Problems panel's
   list, as GitHub annotations), check a skin, pack a hak.
 
-It runs in your browser, served by a small local server (`pnpm dev`) that reads your game and hak files where they
-are. Nothing is uploaded.
+It runs as a desktop app for Windows, macOS and Linux, or in your browser served by a small local server
+(`pnpm dev`). Either way it reads your game and hak files where they are. Nothing is uploaded.
 
 ![The window editor: the element palette and tree on the left, a furniture-arranging window drawn with the built-in Ink
 and brass skin in the middle, the selected button's properties and binds on the right](docs/screenshots/editor.png)
@@ -42,6 +42,23 @@ This is an independent project. It is not made or endorsed by Beamdog, and it co
 
 ## Quick start
 
+### Download the app
+
+Get the installer for your system from the [latest release](https://github.com/plenarius/nwn-nui-designer/releases/latest):
+
+| System | File | What to expect |
+|---|---|---|
+| Windows 10 and 11 (x64) | `nwn-nui-designer-<version>-windows-x64-setup.exe` | Installs for your user, no administrator needed. Signed by ORTH DOT CA Corp, so Windows names the publisher. |
+| macOS 12 or later (Apple silicon and Intel) | `nwn-nui-designer-<version>-mac-universal.dmg` | Drag the app to Applications. Signed with a Developer ID and notarized by Apple, so it opens without a warning. |
+| Linux (x86_64) | `nwn-nui-designer-<version>-x86_64.AppImage` | `chmod +x` it and run it. Not signed: check it against `SHA256SUMS` in the release (`sha256sum -c SHA256SUMS --ignore-missing`). |
+
+The app checks the releases when it starts and once in a while after that. When there is a new version it asks
+first: nothing is downloaded until you say Download, and it installs when you restart the app (on macOS, **Check for
+Updates…** in the app menu also asks right away). It is the same editor as `pnpm dev`, with the same settings file
+(below, in your config folder) and the same game detection.
+
+### Run from source
+
 You need [Node.js](https://nodejs.org/) 24 and pnpm (run `corepack enable` once to get it).
 
 ```bash
@@ -60,6 +77,17 @@ open skin, so it works on a machine without the game.
 Optional. Copy `nui-designer.example.ini` (commented) to `nui-designer.ini` in the repository root, or just run the
 editor: the **Game and haks** dialog finds your install and writes the file when you save. It is ignored by git. The
 editor and every command read it.
+
+The desktop app keeps its `nui-designer.ini` in your config folder instead, and relative paths in it are from that
+folder:
+
+| System | Folder |
+|---|---|
+| Windows | `%APPDATA%\NWN NUI Designer` |
+| macOS | `~/Library/Application Support/NWN NUI Designer` |
+| Linux | `~/.config/NWN NUI Designer` (or `$XDG_CONFIG_HOME/NWN NUI Designer`) |
+
+The **Game and haks** dialog shows the file's path.
 
 | Key | What |
 |---|---|

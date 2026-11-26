@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The toolbar's brand mark (src/app/App.tsx) in the editor's colours, on Apple's 824 px icon grid.
+       icon.png is this, drawn at 1024 px: rsvg-convert -w 1024 -h 1024 icon.svg -o icon.png -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26242c"/>
+      <stop offset="1" stop-color="#121115"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#d6a856" stroke-opacity=".2" stroke-width="3"/>
+  <g transform="translate(224 224) scale(24)" fill="none" stroke="#d6a856" stroke-width="1.6" stroke-linecap="round">
+    <rect x="2" y="3" width="20" height="18" rx="3"/>
+    <path d="M2 8h20" stroke-linecap="butt"/>
+    <rect x="5" y="11" width="6" height="7" rx="1" fill="#d6a856" fill-opacity=".85" stroke="none"/>
+    <path d="M13 12h6M13 15h6M13 18h4"/>
+  </g>
+</svg>

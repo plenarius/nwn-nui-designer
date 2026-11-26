@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { TextModel } from "../../core/font/font.js";
 import { BlobSource } from "../../core/res/source.js";
-import { hasDirectoryPicker, pickDirectory, treeFromFileList } from "../platform.js";
+import { hasDirectoryPicker, isDesktopApp, pickDirectory, treeFromFileList } from "../platform.js";
 import { type IniSettings, type LocalState, SettingsError } from "../local.js";
 import { Icon } from "./icons.js";
 import { Modal } from "./Modal.js";
@@ -173,7 +173,8 @@ function LocalSection({ r, st }: { r: ResourceState; st: LocalState }) {
     <>
       <p className="muted">
         The canvas draws with your NWN:EE install's skin, fonts and textures, and your module's haks, read from your disk by the editor's local server. The
-        settings are saved in <code>{st.ini.path}</code>{st.ini.exists ? "" : " (made when you save)"}; the command line reads it too.
+        settings are saved in <code>{st.ini.path}</code>{st.ini.exists ? "" : " (made when you save)"}
+        {isDesktopApp ? "." : "; the command line reads it too."}
       </p>
       <h3>Game</h3>
       <div className="grid2 wide">

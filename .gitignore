@@ -8,3 +8,7 @@ local/
 tools/open-skin/out/
 __pycache__/
 /nui-designer.ini
+
+# The desktop app (pnpm app:bundle, pnpm app:dist)
+dist-electron/
+release/

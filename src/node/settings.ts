@@ -153,6 +153,8 @@ export interface Settings {
 export interface LoadOptions {
   /** The settings file (default: $NUI_DESIGNER_INI, else nui-designer.ini in the repository root). */
   iniPath?: string;
+  /** The folder the file's relative paths are relative to (default: the repository root; the desktop app: the file's). */
+  base?: string;
   env?: NodeJS.ProcessEnv;
   home?: string;
 }
@@ -169,7 +171,7 @@ export function loadSettings(o: LoadOptions = {}): Settings {
   const exists = existsSync(path);
   const file = exists ? parseIni(readFileSync(path, "utf8")).settings : { ...EMPTY_SETTINGS, overrides: [], haks: [], styles: [] };
   // Paths in the file are relative to the repository root; the default file sits there anyway.
-  const r = (p: string) => resolvePath(p, REPO_ROOT, o.home);
+  const r = (p: string) => resolvePath(p, o.base ?? REPO_ROOT, o.home);
   const pick = (envName: string, v: string): [string | null, Source | null] =>
     env[envName] ? [r(env[envName]!), "env"] : v ? [r(v), "ini"] : [null, null];
   const [game, gameFrom] = pick("NWN_ROOT", file.game);

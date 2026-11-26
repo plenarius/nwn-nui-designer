@@ -86,6 +86,14 @@ describe("nui-designer.ini", () => {
     const none = loadSettings({ iniPath: join(tmp, "missing.ini"), env: {} });
     expect([none.iniExists, none.game, none.overrides]).toEqual([false, null, []]);
   });
+
+  it("resolves relative paths from base when given (the desktop app: the file's own folder)", () => {
+    const cfg = dir("config");
+    const ini = join(cfg, "nui-designer.ini");
+    writeFileSync(ini, "windows = my-windows\noverrides = ovr\n");
+    const s = loadSettings({ iniPath: ini, base: cfg, env: {} });
+    expect([s.windows, s.overrides]).toEqual([join(cfg, "my-windows"), [join(cfg, "ovr")]]);
+  });
 });
 
 describe("install detection", () => {

@@ -2,8 +2,13 @@
   "name": "nwn-nui-designer",
   "version": "0.2.0",
   "private": true,
+  "productName": "NWN NUI Designer",
   "description": "A visual designer for Neverwinter Nights: Enhanced Edition NUI windows",
+  "author": "ORTH DOT CA Corp",
+  "homepage": "https://github.com/plenarius/nwn-nui-designer",
   "type": "module",
+  "main": "dist-electron/main.mjs",
+  "desktopName": "nwn-nui-designer.desktop",
   "license": "MIT",
   "packageManager": "pnpm@12.18.0",
   "scripts": {
@@ -30,7 +35,11 @@
     "skin:roundtrip": "tsx tests/skinround.cli.ts",
     "e2e:skin": "tsx tests/skin.browser.ts",
     "bench:redraw": "tsx tests/redraw.bench.ts",
-    "style:schema": "tsx tools/style-schema.ts"
+    "style:schema": "tsx tools/style-schema.ts",
+    "app": "pnpm build && pnpm app:bundle && electron .",
+    "app:bundle": "tsx electron/bundle.ts",
+    "app:dist": "pnpm build && pnpm app:bundle && electron-builder --config electron/electron-builder.yml --publish never",
+    "app:smoke": "tsx tests/app.smoke.ts"
   },
   "dependencies": {
     "opentype.js": "^2.0.0",
@@ -43,6 +52,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0",
+    "electron-updater": "6.8.11",
+    "esbuild": "0.28.2",
     "oxlint": "1.91.0",
     "playwright-core": "1.49.1",
     "tsx": "^4.23.15",

@@ -56,3 +56,39 @@ jobs:
         run: |
           pnpm exec playwright-core install --with-deps chromium
           pnpm smoke
+
+  app:
+    # The desktop app (electron/): packaged unsigned for Linux and started under Xvfb, so that path cannot rot. The
+    # browser tests above stay on the `pnpm dev` path.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Package (AppImage, unsigned)
+        run: pnpm app:dist
+
+      # The window loads, the local API answers through the app's origin, remote content is refused (tests/app.smoke.ts).
+      - name: Start the app
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q xvfb
+          xvfb-run -a -s "-screen 0 1600x1000x24" pnpm app:smoke --app release/nwn-nui-designer-*-x86_64.AppImage --out .golden-out/app/window.png
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: app-window
+          path: .golden-out/app/
+          if-no-files-found: ignore

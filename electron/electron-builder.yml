@@ -1,0 +1,61 @@
+# The desktop app's packages (pnpm app:dist). Signing happens only in the tag build (.github/workflows/release.yml):
+# macOS with the Developer ID found in its keychain (CSC_NAME, CSC_KEYCHAIN) and notarized with the API key
+# (APPLE_API_KEY...), Windows through win-sign.cjs. Without those, the packages are unsigned.
+appId: ca.orth.nwn-nui-designer
+copyright: Copyright (c) 2026 plenarius
+directories:
+  output: release
+  buildResources: electron/build
+# main.mjs and preload.cjs carry everything they import (electron/bundle.ts): no node_modules in the app.
+files:
+  - dist/**
+  - dist-electron/**
+  - package.json
+  - "!**/node_modules/**"
+asar: true
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+publish:
+  provider: github
+  owner: plenarius
+  repo: nwn-nui-designer
+  releaseType: release
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
+  hardenedRuntime: true
+  entitlements: electron/build/entitlements.mac.plist
+  entitlementsInherit: electron/build/entitlements.mac.plist
+  artifactName: nwn-nui-designer-${version}-mac-universal.${ext}
+dmg:
+  sign: true
+  artifactName: nwn-nui-designer-${version}-mac-universal.${ext}
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+  signtoolOptions:
+    sign: electron/win-sign.cjs
+    signingHashAlgorithms: [sha256]
+    # The certificate's CN: the updater installs only an update signed by it.
+    publisherName: ORTH DOT CA Corp
+nsis:
+  artifactName: nwn-nui-designer-${version}-windows-x64-setup.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: x64
+  category: Development
+  syncDesktopName: true
+  artifactName: nwn-nui-designer-${version}-x86_64.${ext}
